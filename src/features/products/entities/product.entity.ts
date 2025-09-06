@@ -10,6 +10,10 @@ export class Products {
 
   @ApiProperty()
   @Prop()
+  code: number;
+
+  @ApiProperty()
+  @Prop()
   productName: string;
 
   @ApiProperty()
@@ -26,15 +30,15 @@ export class Products {
 
   @ApiProperty()
   @Prop()
-  unitPrice: number;
+  unit: string;
 
   @ApiProperty()
   @Prop()
-  costPrice: number;
+  rate: number;
 
   @ApiProperty()
   @Prop()
-  stockQuantity: number;
+  quantity: number;
 
   @ApiProperty()
   @Prop()

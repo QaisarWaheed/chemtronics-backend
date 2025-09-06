@@ -5,6 +5,10 @@ import type { Category } from '../entities/product.entity';
 export class CreateProductDto {
   @ApiProperty()
   @IsNotEmpty()
+  code: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
   productName: string;
 
   @ApiProperty()
@@ -21,15 +25,15 @@ export class CreateProductDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  unitPrice: number;
+  unit: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  costPrice: number;
+  rate: number;
 
   @ApiProperty()
   @IsNotEmpty()
-  stockQuantity: number;
+  quantity: number;
 
   @ApiProperty()
   @IsNotEmpty()
