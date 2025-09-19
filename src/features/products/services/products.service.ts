@@ -19,8 +19,8 @@ export class ProductsService {
     return await this.productModel.find();
   }
 
-  async getProductById(id: string): Promise<Products | null> {
-    const product = await this.productModel.findById(id);
+  async getProductByCode(code: number): Promise<Products | null> {
+    const product = await this.productModel.findOne({ code });
     if (!product) {
       throw new NotFoundException('Product not found');
     }

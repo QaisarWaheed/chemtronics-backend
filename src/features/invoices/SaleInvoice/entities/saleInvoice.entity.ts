@@ -48,10 +48,16 @@ export class SaleInvoice {
   saleAccountTitle: string;
 
   @Prop()
+  province?: string;
+
+  @Prop()
   ntnNumber?: string;
 
   @Prop({ required: true, type: [Object] })
   products: SaleInvoiceProduct[];
+
+  @Prop()
+  notes?: string;
 
   declare createdAt: Date;
   declare updatedAt: Date;

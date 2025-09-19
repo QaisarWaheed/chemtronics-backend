@@ -11,11 +11,7 @@ export class CreateProductDto {
   @IsNotEmpty()
   productName: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  sku: string;
-
-  @ApiProperty({ type: String, enum: ['Chemicals', 'WaterPlants'] })
+  @ApiProperty({ type: String, enum: ['Chemicals', 'Equipments', 'Services'] })
   @IsNotEmpty()
   category: Category;
 
@@ -25,11 +21,11 @@ export class CreateProductDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  unit: string;
+  unitPrice: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  rate: number;
+  costPrice: number;
 
   @ApiProperty()
   @IsNotEmpty()

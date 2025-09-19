@@ -23,12 +23,12 @@ export class ProductsController {
     return await this.productsService.getAllProducts();
   }
 
-  @Get('product-by-id/:id')
-  async getProductById(@Param('id') id: string) {
-    return await this.productsService.getProductById(id);
+  @Get('product-by-code/:code')
+  async getProductByCode(@Param('code') code: number) {
+    return await this.productsService.getProductByCode(code);
   }
 
-  @Post()
+  @Post('create-product')
   async createProduct(@Body() data: CreateProductDto) {
     return await this.productsService.createProduct(data);
   }

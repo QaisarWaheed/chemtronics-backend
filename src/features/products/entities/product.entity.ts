@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import mongoose from 'mongoose';
 
-export type Category = 'Chemicals' | 'WaterPlants';
+export type Category = 'Chemicals' | 'Equipments' | 'Services';
 
 @Schema({ timestamps: true })
 export class Products {
@@ -17,10 +17,6 @@ export class Products {
   productName: string;
 
   @ApiProperty()
-  @Prop()
-  sku: string;
-
-  @ApiProperty()
   @Prop({ type: String, enum: ['Chemicals', 'WaterPlants'] })
   category: Category;
 
@@ -30,11 +26,11 @@ export class Products {
 
   @ApiProperty()
   @Prop()
-  unit: string;
+  unitPrice: string;
 
   @ApiProperty()
   @Prop()
-  rate: number;
+  costPrice: number;
 
   @ApiProperty()
   @Prop()
@@ -45,7 +41,6 @@ export class Products {
   minimumStockLevel: number;
 
   declare createAt: Date;
-
   declare updatedAt: Date;
 }
 
