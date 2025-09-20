@@ -21,7 +21,7 @@ export class CreateProductDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  unitPrice: string;
+  unitPrice: number;
 
   @ApiProperty()
   @IsNotEmpty()

@@ -26,7 +26,7 @@ export class Products {
 
   @ApiProperty()
   @Prop()
-  unitPrice: string;
+  unitPrice: number;
 
   @ApiProperty()
   @Prop()
