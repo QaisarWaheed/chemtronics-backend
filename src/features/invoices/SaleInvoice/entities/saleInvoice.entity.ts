@@ -18,9 +18,6 @@ export class SaleInvoice {
   declare _id: mongoose.Types.ObjectId;
 
   @Prop({ required: true })
-  computerNumber: string;
-
-  @Prop({ required: true })
   invoiceDate: Date;
 
   @Prop()
@@ -36,7 +33,7 @@ export class SaleInvoice {
   poDate?: Date;
 
   @Prop({ required: true })
-  account: string;
+  accountNumber: string;
 
   @Prop({ required: true })
   accountTitle: string;

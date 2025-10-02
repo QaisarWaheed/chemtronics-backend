@@ -14,7 +14,8 @@ export class ChartOfAccountService {
 
   async create(createChartOfAccountDto: CreateChartOfAccountDto) {
     const created = new this.chartOfAccountModel(createChartOfAccountDto);
-    return created.save();
+    await created.save();
+    return created;
   }
 
   async findAll() {
