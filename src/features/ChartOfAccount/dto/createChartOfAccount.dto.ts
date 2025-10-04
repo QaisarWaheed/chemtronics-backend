@@ -11,6 +11,14 @@ export class CreateChartOfAccountDto {
   @IsNotEmpty()
   selectedCode: string;
 
+  @ApiProperty({ required: false })
+  @IsOptional()
+  selectedAccountType1?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  selectedAccountType2?: string;
+
   @ApiProperty()
   @IsNotEmpty()
   accountCode: string;
