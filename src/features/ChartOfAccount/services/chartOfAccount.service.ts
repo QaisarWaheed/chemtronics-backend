@@ -7,6 +7,9 @@ import { UpdateChartOfAccountDto } from '../dto/updateChartOfAccount.dto';
 
 @Injectable()
 export class ChartOfAccountService {
+  async findByAccountType(accountType: string) {
+    return this.chartOfAccountModel.find({ accountType }).exec();
+  }
   async findSalesAccounts() {
     const salesAccounts = await this.chartOfAccountModel
       .find({ accountType: 'sales' })

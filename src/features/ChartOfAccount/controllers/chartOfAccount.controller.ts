@@ -15,6 +15,10 @@ import { ApiTags } from '@nestjs/swagger';
 @ApiTags('Chart Of Account')
 @Controller('chart-of-account')
 export class ChartOfAccountController {
+  @Get('find-accountby-accountType/:accountType')
+  findByAccountType(@Param('accountType') accountType: string) {
+    return this.chartOfAccountService.findByAccountType(accountType);
+  }
   @Get('sales-accounts')
   getSalesAccounts() {
     return this.chartOfAccountService.findSalesAccounts();
@@ -33,6 +37,9 @@ export class ChartOfAccountController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
+    if (id === 'all') {
+      return this.chartOfAccountService.findAll();
+    }
     return this.chartOfAccountService.findOne(id);
   }
 
