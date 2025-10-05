@@ -6,6 +6,8 @@ import {
   Param,
   Put,
   Delete,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ChartOfAccountService } from '../services/chartOfAccount.service';
 import { CreateChartOfAccountDto } from '../dto/createChartOfAccount.dto';
@@ -52,7 +54,16 @@ export class ChartOfAccountController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.chartOfAccountService.remove(id);
+  async remove(@Param('id') id: string) {
+    // Validate ObjectId format
+    const isValidObjectId = /^[a-fA-F0-9]{24}$/.test(id);
+    if (!isValidObjectId) {
+      throw new BadRequestException('Invalid ObjectId format');
+    }
+    const deleted = await this.chartOfAccountService.remove(id);
+    if (!deleted) {
+      throw new NotFoundException('ChartOfAccount entry not found');
+    }
+    return deleted;
   }
 }

@@ -46,6 +46,7 @@ export class ChartOfAccountService {
   }
 
   async remove(id: string) {
-    return this.chartOfAccountModel.findByIdAndDelete(id).exec();
+    const deleted = await this.chartOfAccountModel.findByIdAndDelete(id).exec();
+    return deleted;
   }
 }
