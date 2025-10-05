@@ -15,6 +15,10 @@ import { ApiTags } from '@nestjs/swagger';
 @ApiTags('Chart Of Account')
 @Controller('chart-of-account')
 export class ChartOfAccountController {
+  @Get('sales-accounts')
+  getSalesAccounts() {
+    return this.chartOfAccountService.findSalesAccounts();
+  }
   constructor(private readonly chartOfAccountService: ChartOfAccountService) {}
 
   @Post()

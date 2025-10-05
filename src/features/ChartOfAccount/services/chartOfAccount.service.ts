@@ -7,6 +7,16 @@ import { UpdateChartOfAccountDto } from '../dto/updateChartOfAccount.dto';
 
 @Injectable()
 export class ChartOfAccountService {
+  async findSalesAccounts() {
+    const salesAccounts = await this.chartOfAccountModel
+      .find({ accountType: 'sales' })
+      .exec();
+    return salesAccounts.map((acc) => ({
+      SaleAccount: acc.accountCode,
+      SaleAccountTitle: acc.accountName,
+      _id: acc._id,
+    }));
+  }
   constructor(
     @InjectModel(ChartOfAccount.name)
     private chartOfAccountModel: Model<ChartOfAccount>,
