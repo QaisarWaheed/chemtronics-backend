@@ -17,7 +17,7 @@ export class Products {
   productName: string;
 
   @ApiProperty()
-  @Prop({ type: String, enum: ['Chemicals', 'WaterPlants'] })
+  @Prop({ type: String, enum: ['Chemicals', 'Equipments', 'Services'] })
   category: Category;
 
   @ApiProperty()
