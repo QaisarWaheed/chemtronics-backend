@@ -21,14 +21,8 @@ export class PurchaseInvoice {
   gst?: number;
   declare invoiceNumber: mongoose.Types.ObjectId;
 
-  @Prop({ required: true })
-  customerName: string;
-
-  @Prop({ required: true })
-  referenceNumber: number;
-
-  @Prop({ required: true })
-  referenceDate: Date;
+  @Prop()
+  customerName?: string;
 
   @Prop({ required: true })
   items: Product[];
@@ -45,11 +39,8 @@ export class PurchaseInvoice {
   @Prop({ required: true })
   totalAmount: number;
 
-  @Prop({ required: true })
-  status: string;
-
   @Prop({ default: Date.now })
-  InvoiceDate: Date;
+  invoiceDate: Date;
 
   declare createdAt: Date;
   declare updatedAt: Date;

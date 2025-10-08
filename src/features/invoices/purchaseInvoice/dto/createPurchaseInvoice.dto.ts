@@ -7,17 +7,8 @@ import type { PurchaseTitle } from '../entities/purchaseInvoice.entity';
 export class CreatePurchaseInvoiceDto {
   @ApiProperty({ required: false })
   gst?: number;
-  @ApiProperty()
-  @IsNotEmpty()
-  customerName: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  referenceNumber: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  referenceDate: Date;
+  @ApiProperty({ required: false })
+  customerName?: string;
 
   @ApiProperty({ type: [Object] })
   @IsNotEmpty()
@@ -38,10 +29,6 @@ export class CreatePurchaseInvoiceDto {
   @ApiProperty()
   @IsNotEmpty()
   totalAmount: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  status: string;
 
   @ApiProperty()
   @IsNotEmpty()
