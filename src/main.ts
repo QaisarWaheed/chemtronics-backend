@@ -7,9 +7,10 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: true, // Allow all origins in development. In production, specify your frontend URL
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: [
+      'https://chemtronics-frontend-4ada.vercel.app',
+      'http://localhost:5173',
+    ],
     credentials: true,
   });
 
