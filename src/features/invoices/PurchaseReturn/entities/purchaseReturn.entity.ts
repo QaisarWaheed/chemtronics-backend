@@ -26,11 +26,11 @@ export class PurchaseReturn {
   @Prop({ required: true })
   supplierTitle: string;
 
-  @Prop({ required: true })
-  purchaseAccount: string;
+  @Prop()
+  purchaseAccount?: string;
 
-  @Prop({ required: true })
-  purchaseTitle: string;
+  @Prop()
+  purchaseTitle?: string;
 
   @Prop({ required: true, type: [Object] })
   products: PurchaseReturnProduct[];

@@ -18,13 +18,13 @@ export class CreatePurchaseReturnDto {
   @IsNotEmpty()
   supplierTitle: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  purchaseAccount: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  purchaseAccount?: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  purchaseTitle: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  purchaseTitle?: string;
 
   @ApiProperty({ type: [Object] })
   @IsNotEmpty()
