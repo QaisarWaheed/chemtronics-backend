@@ -15,7 +15,7 @@ import { UpdateChartOfAccountDto } from '../dto/updateChartOfAccount.dto';
 import { ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Chart Of Account')
-@Controller('chart-fo-account')
+@Controller('chart-of-account')
 export class ChartOfAccountController {
   @Get('find-accountby-accountType/:accountType')
   findByAccountType(@Param('accountType') accountType: string) {
