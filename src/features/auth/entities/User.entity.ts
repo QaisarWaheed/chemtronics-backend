@@ -20,12 +20,12 @@ export class UserEntity {
 
   @ApiProperty({
     type: String,
-    enum: ['SuperAdmin', 'CompanyAdmin', 'Accountant', 'Staff'],
+    enum: ['Super Admin', 'Company Admin', 'Accounts User', 'Staff'],
     default: 'Staff',
   })
   @Prop({
     type: String,
-    enum: ['SuperAdmin', 'CompanyAdmin', 'Accountant', 'Staff'],
+    enum: ['Super Admin', 'Company Admin', 'Accounts User', 'Staff'],
     default: 'Staff',
   })
   role: Role;

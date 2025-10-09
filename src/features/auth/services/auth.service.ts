@@ -29,14 +29,20 @@ export class AuthService {
   }
 
   async createUser(data: CreateUserDto): Promise<UserEntity | null> {
-    // const user = await this.userModel.findOne({data.email});
-    // if(!user){
-    // return await this.userModel.create(data);
-    // }
-    // throw new HttpException('user already exists', HttpStatus.BAD_REQUEST);
 
     return await this.userModel.create(data);
   }
+
+
+  async login(data: { userName: string; password: string }): Promise<{ user: UserEntity } | null> {
+    const { userName, password } = data;
+    const user = await this.userModel.findOne({ userName, password });
+    if (!user) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+    return { user };
+  }
+
 
   async updateUser(
     id: string,

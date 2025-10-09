@@ -1,25 +1,34 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose, { mongo } from 'mongoose';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity('delivery_chalan')
+ @Schema({ timestamps: true })
 export class DeliveryChalan {
-  @PrimaryGeneratedColumn()
-  id: number;
+ 
+ declare id: mongoose.Types.ObjectId;
 
-  @Column({ unique: true })
+  @Prop({ unique: true })
   chalanNo: string;
 
-  @Column({ type: 'date' })
+  @Prop({ type: Date })
   deliveryDate: string;
 
-  @Column({ nullable: true })
+  @Prop({ nullable: true })
   poNo: string;
 
-  @Column({ type: 'date', nullable: true })
+  @Prop({ type: Date, nullable: true })
   poDate: string;
 
-  @Column()
+  @Prop()
   partyName: string;
 
-  @Column()
+  @Prop()
   partyAddress: string;
+
+declare createAt: Date;
+declare updatedAt: Date;
+
 }
+
+const DeliveryChalanSchema = SchemaFactory.createForClass(DeliveryChalan);
+export default DeliveryChalanSchema;

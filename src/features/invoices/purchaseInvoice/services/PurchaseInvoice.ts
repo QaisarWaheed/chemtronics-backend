@@ -29,9 +29,10 @@ export class PurchaseInvoiceService {
     id: string,
     data: Partial<UpdatePurchaseInvoiceDto>,
   ): Promise<PurchaseInvoice | null> {
-    return this.purchaseInvoiceModel
-      .findByIdAndUpdate(id, data, { new: true })
+   const updatedInvoice = await this.purchaseInvoiceModel.findByIdAndUpdate(id, data, { new: true })
       .exec();
+    return updatedInvoice;
+
   }
 
   async deletePurchaseInvoice(id: string): Promise<PurchaseInvoice | null> {

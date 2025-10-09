@@ -31,16 +31,16 @@ export class DeliveryChalanController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.deliveryChalanService.findOne(Number(id));
+    return this.deliveryChalanService.findOne((id));
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateDeliveryChalanDto) {
-    return this.deliveryChalanService.update(Number(id), dto);
+    return this.deliveryChalanService.update((id), dto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.deliveryChalanService.remove(Number(id));
+    return this.deliveryChalanService.remove((id));
   }
 }

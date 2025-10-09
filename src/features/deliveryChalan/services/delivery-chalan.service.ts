@@ -6,41 +6,46 @@ import {
   CreateDeliveryChalanDto,
   UpdateDeliveryChalanDto,
 } from '../dto/delivery-chalan.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class DeliveryChalanService {
   constructor(
-    @InjectRepository(DeliveryChalan)
-    private readonly deliveryChalanRepository: Repository<DeliveryChalan>,
+
+ @InjectModel(DeliveryChalan.name)
+    private deliveryChalanModel: Model<DeliveryChalan>,
+
+     
   ) {}
 
   async create(dto: CreateDeliveryChalanDto): Promise<DeliveryChalan> {
-    const chalan = this.deliveryChalanRepository.create(dto);
-    return this.deliveryChalanRepository.save(chalan);
+    const chalan = this.deliveryChalanModel.create(dto);
+    return chalan
   }
 
   async findAll(): Promise<DeliveryChalan[]> {
-    return this.deliveryChalanRepository.find();
+    return this.deliveryChalanModel.find();
   }
 
-  async findOne(id: number): Promise<DeliveryChalan> {
-    const chalan = await this.deliveryChalanRepository.findOneBy({ id });
+  async findOne(id: string): Promise<DeliveryChalan> {
+    const chalan = await this.deliveryChalanModel.findById(id);
     if (!chalan) throw new NotFoundException('Delivery Chalan not found');
     return chalan;
   }
 
   async update(
-    id: number,
+    id: string,
     dto: UpdateDeliveryChalanDto,
-  ): Promise<DeliveryChalan> {
-    const chalan = await this.findOne(id);
-    Object.assign(chalan, dto);
-    return this.deliveryChalanRepository.save(chalan);
+  ) {
+    const updatedChalan = await this.deliveryChalanModel.findByIdAndUpdate(id, dto, { new: true })
+      .exec();
+    return updatedChalan;
   }
 
-  async remove(id: number): Promise<void> {
-    const result = await this.deliveryChalanRepository.delete(id);
-    if (!result.affected)
+  async remove(id: string): Promise<void> {
+    const result = await this.deliveryChalanModel.deleteOne({ _id: id });
+    if (!result.acknowledged)
       throw new NotFoundException('Delivery Chalan not found');
   }
 }

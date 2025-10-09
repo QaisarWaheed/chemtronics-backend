@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DeliveryChalan } from './entities/delivery-chalan.entity';
+import DeliveryChalanSchema, { DeliveryChalan } from './entities/delivery-chalan.entity';
 import { DeliveryChalanService } from './services/delivery-chalan.service';
 import { DeliveryChalanController } from './controllers/delivery-chalan.controller';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([DeliveryChalan])],
+  imports: [MongooseModule.forFeature([{ name: 'DeliveryChalan', schema: DeliveryChalanSchema }])],
   controllers: [DeliveryChalanController],
   providers: [DeliveryChalanService],
   exports: [DeliveryChalanService],
