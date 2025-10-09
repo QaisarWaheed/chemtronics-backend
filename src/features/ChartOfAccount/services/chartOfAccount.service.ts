@@ -32,7 +32,7 @@ export class ChartOfAccountService {
   }
 
   async findAll() {
-    return this.chartOfAccountModel.find().exec();
+    return this.chartOfAccountModel.find();
   }
 
   async findOne(id: string) {
