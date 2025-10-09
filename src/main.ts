@@ -7,7 +7,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      'https://chemtronics-frontend-4ada.vercel.app',
+      'https://chemtronics-backend.onrender.com',
       'http://localhost:5173',
     ],
     credentials: true,
