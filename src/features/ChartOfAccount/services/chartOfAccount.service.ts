@@ -35,8 +35,8 @@ export class ChartOfAccountService {
     return this.chartOfAccountModel.find();
   }
 
-  async findOne(id: strin) {
-    return this.chartOfAccountModel.findById(id).exec();
+  async findOne(id: string) {
+    return this.chartOfAccountModel.findById(id);
   }
 
   async update(id: string, updateChartOfAccountDto: UpdateChartOfAccountDto) {
