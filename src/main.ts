@@ -6,12 +6,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: [
-      'https://chemtronics-frontend.vercel.app/',
-      'http://localhost:5173',
-    ],
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
-    global: true,
   });
 
   const config = new DocumentBuilder()

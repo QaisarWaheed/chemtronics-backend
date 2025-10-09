@@ -32,11 +32,11 @@ export class ChartOfAccountService {
   }
 
   async findAll() {
-    return this.chartOfAccountModel.find();
+    return this.chartOfAccountModel.find().exec();
   }
 
   async findOne(id: string) {
-    return this.chartOfAccountModel.findById(id);
+    return this.chartOfAccountModel.findById(id).exec();
   }
 
   async update(id: string, updateChartOfAccountDto: UpdateChartOfAccountDto) {
