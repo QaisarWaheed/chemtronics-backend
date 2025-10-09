@@ -35,7 +35,7 @@ export class ChartOfAccountService {
     return this.chartOfAccountModel.find();
   }
 
-  async findOne(id: string) {
+  async findOne(id: strin) {
     return this.chartOfAccountModel.findById(id).exec();
   }
 
