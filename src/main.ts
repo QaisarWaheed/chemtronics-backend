@@ -11,6 +11,7 @@ async function bootstrap() {
       'http://localhost:5173',
     ],
     credentials: true,
+    global: true,
   });
 
   const config = new DocumentBuilder()
