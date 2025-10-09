@@ -3,7 +3,7 @@ import type { Role } from '../entities/User.entity';
 
 export class UpdateUserDto {
   @ApiProperty()
-  userName: string;
+  fullName: string;
 
   @ApiProperty({
     type: String,
