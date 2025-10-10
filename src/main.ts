@@ -8,7 +8,7 @@ async function bootstrap() {
 app.use(new BrandMiddleware().use);
  
   app.enableCors({
-    origin: true,
+    origin: 'https://chemtronics-frontend-4ada.vercel.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   });
