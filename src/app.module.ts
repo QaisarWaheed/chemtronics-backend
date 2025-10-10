@@ -9,8 +9,12 @@ import { InvoiceModule } from './features/invoices/invoice.module';
 import { AccountsModule } from './features/accounts/accounts.module';
 @Module({
   imports: [
-    MongooseModule.forRoot(process.env.MONGO_URI ?? ''),
-    MongooseModule.forRoot(process.env.MONGO_URI2 ?? ''),
+    MongooseModule.forRoot(process.env.MONGO_URI ?? '', {
+      connectionName: 'chemtronics',
+    }),
+    MongooseModule.forRoot(process.env.MONGO_URI2 ?? '', {
+      connectionName: 'hydroworx',
+    }),
     AuthModule,
     ProductsModule,
     StockOpeningModule,
