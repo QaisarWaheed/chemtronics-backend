@@ -20,7 +20,11 @@ import { SaleReturnService } from './SaleReturn/services/saleReturn.service';
       { name: 'PurchaseReturn', schema: PurchaseReturnSchema },
       { name: 'SaleInvoice', schema: SaleInvoiceSchema },
       { name: 'SaleReturn', schema: SaleReturnSchema },
-    ]),
+    ], 'chemtronics'),
+    MongooseModule.forFeature([
+      { name: 'SaleInvoice', schema: SaleInvoiceSchema },
+      { name: 'SaleReturn', schema: SaleReturnSchema },
+    ], 'hydroworx'),
   ],
   controllers: [
     PurchaseInvoiceController,

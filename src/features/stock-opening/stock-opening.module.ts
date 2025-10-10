@@ -10,7 +10,10 @@ import StockopeningSchema, {
   imports: [
     MongooseModule.forFeature([
       { name: StockOpening.name, schema: StockopeningSchema },
-    ]),
+    ] , 'chemtronics',),
+    MongooseModule.forFeature([
+      { name: StockOpening.name, schema: StockopeningSchema },
+    ] , 'hydroworx',),
   ],
   controllers: [StockOpeningController],
   providers: [StockopeningService],

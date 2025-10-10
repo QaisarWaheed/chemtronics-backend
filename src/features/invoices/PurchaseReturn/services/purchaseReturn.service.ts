@@ -1,37 +1,53 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PurchaseReturn } from '../entities/purchaseReturn.entity';
 import { CreatePurchaseReturnDto } from '../dto/createPurchaseReturn.dto';
 import { UpdatePurchaseReturnDto } from '../dto/updatePurchaseReturn.dto';
+import { REQUEST } from '@nestjs/core';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class PurchaseReturnService {
   constructor(
-    @InjectModel(PurchaseReturn.name)
+    @Inject(REQUEST) private readonly req: any,
+
+    @InjectModel(PurchaseReturn.name, 'chemtronics')
     private purchaseReturnModel: Model<PurchaseReturn>,
+    @InjectModel(PurchaseReturn.name, 'hydroworx')
+    private purchaseReturnModel2: Model<PurchaseReturn>,
   ) {}
 
+
+    private getModel(): Model<PurchaseReturn> {
+      const brand = this.req['brand'] || 'chemtronics';
+      return brand === 'hydroworx' ? this.purchaseReturnModel2 : this.purchaseReturnModel;
+    }
+
   async create(createPurchaseReturnDto: CreatePurchaseReturnDto) {
-    const created = new this.purchaseReturnModel(createPurchaseReturnDto);
+    const purchaseReturnModel = this.getModel();
+    const created = new purchaseReturnModel(createPurchaseReturnDto);
     return created.save();
   }
 
   async findAll() {
-    return this.purchaseReturnModel.find().exec();
+    const purchaseReturnModel = this.getModel();
+    return purchaseReturnModel.find().exec();
   }
 
   async findOne(id: string) {
-    return this.purchaseReturnModel.findById(id).exec();
+    const purchaseReturnModel = this.getModel();
+    return purchaseReturnModel.findById(id).exec();
   }
 
   async update(id: string, updatePurchaseReturnDto: UpdatePurchaseReturnDto) {
-    return this.purchaseReturnModel
+    const purchaseReturnModel = this.getModel();
+    return purchaseReturnModel
       .findByIdAndUpdate(id, updatePurchaseReturnDto, { new: true })
       .exec();
   }
 
   async remove(id: string) {
-    return this.purchaseReturnModel.findByIdAndDelete(id).exec();
+    const purchaseReturnModel = this.getModel();
+    return purchaseReturnModel.findByIdAndDelete(id).exec();
   }
 }

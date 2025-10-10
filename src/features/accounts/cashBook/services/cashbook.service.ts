@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Cashbook, EntryType } from '../entities/cashbook.entity';
 import { CreateCashbookDto } from '../dtos/CreateCashbook.dto';
+import { REQUEST } from '@nestjs/core';
 
 function parseMMDDYYYY(dateStr?: string): Date | undefined {
   if (!dateStr) return undefined;
@@ -15,25 +16,38 @@ function parseMMDDYYYY(dateStr?: string): Date | undefined {
   return new Date(`${year}-${paddedMonth}-${paddedDay}`);
 }
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class CashbookService {
   constructor(
-    @InjectModel(Cashbook.name) private cashbookModel: Model<Cashbook>,
+    @Inject(REQUEST) private readonly req: any,
+    @InjectModel(Cashbook.name, 'chemtronics') private cashbookModel: Model<Cashbook>,
+    @InjectModel(Cashbook.name, 'hydroworx') private cashbookModel2: Model<Cashbook>,
   ) {}
+      
+      
+
+       private getModel(): Model<Cashbook> {
+        const brand = this.req['brand'] || 'chemtronics';
+        return brand === 'hydroworx' ? this.cashbookModel2 : this.cashbookModel;
+      }
+    
 
   async create(createCashbookDto: CreateCashbookDto) {
-    return await this.cashbookModel.create(createCashbookDto);
+    const cashbookModel = this.getModel();
+    return await cashbookModel.create(createCashbookDto);
   }
 
   async getAllcashBookEntries() {
-    return await this.cashbookModel.find().exec();
+    const cashbookModel = this.getModel();
+    return await cashbookModel.find().exec();
   }
 
   async getTotalAmount(amount: number) {
+    const cashbookModel = this.getModel();
     if (isNaN(amount) || amount < 0) {
       throw new BadRequestException('Amount must be a positive number');
     }
-    const result = await this.cashbookModel.findOne({ amount }).exec();
+    const result = await cashbookModel.findOne({ amount }).exec();
     if (!result) {
       throw new BadRequestException('Cashbook entry not found');
     }
@@ -45,6 +59,7 @@ export class CashbookService {
     startDate?: string;
     endDate?: string;
   }) {
+    const cashbookModel = this.getModel();
     const query: any = {};
     if (filters?.entryType) query.entryType = filters.entryType;
 
@@ -52,6 +67,7 @@ export class CashbookService {
     let endDate: Date | undefined;
 
     if (filters?.startDate) {
+      
       startDate = parseMMDDYYYY(filters.startDate);
       if (!startDate) throw new BadRequestException('Invalid start date');
       startDate.setHours(0, 0, 0, 0); // Start of day
@@ -69,6 +85,6 @@ export class CashbookService {
     } else if (endDate) {
       query.date = { $lte: endDate };
     }
-    return await this.cashbookModel.find(query).exec();
+    return await cashbookModel.find(query).exec();
   }
 }

@@ -8,7 +8,10 @@ import { ProductsService } from './services/products.service';
   imports: [
     MongooseModule.forFeature([
       { name: Products.name, schema: ProductsSchema },
-    ]),
+    ] , 'chemtronics',),
+    MongooseModule.forFeature([
+      { name: Products.name, schema: ProductsSchema },
+    ] , 'hydroworx',),
   ],
   controllers: [ProductsController],
   providers: [ProductsService],

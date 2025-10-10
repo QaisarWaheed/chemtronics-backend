@@ -15,9 +15,16 @@ import { JournalVoucherController } from './journalVoucher/journal-voucher/journ
     MongooseModule.forFeature([
       { name: Cashbook.name, schema: CashbookSchema },
       { name: JournalVoucher.name, schema: JournalVoucherSchema },
-    ]),
+      
+    ], 'chemtronics',),
+    MongooseModule.forFeature([
+      { name: Cashbook.name, schema: CashbookSchema },
+      { name: JournalVoucher.name, schema: JournalVoucherSchema },
+      
+    ], 'hydroworx',),
   ],
-  controllers: [CashbookController, JournalVoucherController],
-  providers: [CashbookService, JournalvoucherService],
+
+
+ 
 })
 export class AccountsModule {}

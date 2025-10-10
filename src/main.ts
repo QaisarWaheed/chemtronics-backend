@@ -1,16 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { BrandMiddleware } from './middlewares/brand.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+app.use(new BrandMiddleware().use);
+ 
   app.enableCors({
     origin: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   });
-
   const config = new DocumentBuilder()
     .setTitle('Your API Title')
     .setDescription('Your API Description')

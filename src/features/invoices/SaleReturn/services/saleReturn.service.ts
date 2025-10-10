@@ -1,36 +1,52 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SaleReturn } from '../entities/saleReturn.entity';
 import { CreateSaleReturnDto } from '../dto/createSaleReturn.dto';
 import { UpdateSaleReturnDto } from '../dto/updateSaleReturn.dto';
+import { REQUEST } from '@nestjs/core';
 
-@Injectable()
+
+@Injectable({ scope: Scope.REQUEST })
 export class SaleReturnService {
   constructor(
-    @InjectModel(SaleReturn.name) private saleReturnModel: Model<SaleReturn>,
+    @Inject(REQUEST) private readonly req: any,
+    @InjectModel(SaleReturn.name, 'chemtronics') private saleReturnModel: Model<SaleReturn>,
+    @InjectModel(SaleReturn.name, 'hydroworx') private saleReturnModel2: Model<SaleReturn>,
   ) {}
 
+
+  private getModel(): Model<SaleReturn> {
+    const brand = this.req['brand'] || 'chemtronics';
+    return brand === 'hydroworx' ? this.saleReturnModel2 : this.saleReturnModel;
+  }
+
+
   async create(createSaleReturnDto: CreateSaleReturnDto) {
-    const created = new this.saleReturnModel(createSaleReturnDto);
+    const saleReturnModel = this.getModel();
+    const created = new saleReturnModel(createSaleReturnDto);
     return created.save();
   }
 
   async findAll() {
-    return this.saleReturnModel.find().exec();
+    const saleReturnModel = this.getModel();
+    return saleReturnModel.find().exec();
   }
 
   async findOne(id: string) {
-    return this.saleReturnModel.findById(id).exec();
+    const saleReturnModel = this.getModel();
+    return saleReturnModel.findById(id).exec();
   }
 
   async update(id: string, updateSaleReturnDto: UpdateSaleReturnDto) {
-    return this.saleReturnModel
+    const saleReturnModel = this.getModel();
+    return saleReturnModel
       .findByIdAndUpdate(id, updateSaleReturnDto, { new: true })
       .exec();
   }
 
   async remove(id: string) {
-    return this.saleReturnModel.findByIdAndDelete(id).exec();
+    const saleReturnModel = this.getModel();
+    return saleReturnModel.findByIdAndDelete(id).exec();
   }
 }

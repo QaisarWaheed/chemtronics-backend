@@ -10,7 +10,7 @@ import { AccountsModule } from './features/accounts/accounts.module';
 @Module({
   imports: [
     MongooseModule.forRoot(process.env.MONGO_URI ?? ''),
-
+    MongooseModule.forRoot(process.env.MONGO_URI2 ?? ''),
     AuthModule,
     ProductsModule,
     StockOpeningModule,

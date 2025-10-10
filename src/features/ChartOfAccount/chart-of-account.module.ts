@@ -8,7 +8,10 @@ import { ChartOfAccountService } from './services/chartOfAccount.service';
   imports: [
     MongooseModule.forFeature([
       { name: 'ChartOfAccount', schema: ChartOfAccountSchema },
-    ]),
+    ], 'chemtronics',),
+    MongooseModule.forFeature([
+      { name: 'ChartOfAccount', schema: ChartOfAccountSchema },
+    ], 'hydroworx',),
   ],
   controllers: [ChartOfAccountController],
   providers: [ChartOfAccountService],

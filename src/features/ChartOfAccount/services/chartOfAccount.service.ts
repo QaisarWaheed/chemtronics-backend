@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ChartOfAccount } from '../entities/chartOfAccount.entity';
 import { CreateChartOfAccountDto } from '../dto/createChartOfAccount.dto';
 import { UpdateChartOfAccountDto } from '../dto/updateChartOfAccount.dto';
+import { REQUEST } from '@nestjs/core';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class ChartOfAccountService {
   async findByAccountType(accountType: string) {
     return this.chartOfAccountModel.find({ accountType }).exec();
@@ -21,32 +22,45 @@ export class ChartOfAccountService {
     }));
   }
   constructor(
-    @InjectModel(ChartOfAccount.name)
+    @Inject(REQUEST) private readonly req: any,
+    @InjectModel(ChartOfAccount.name, 'chemtronics')
     private chartOfAccountModel: Model<ChartOfAccount>,
+    @InjectModel(ChartOfAccount.name, 'hydroworx')
+    private chartOfAccountModel2: Model<ChartOfAccount>,
   ) {}
 
+  private getModel(): Model<ChartOfAccount> {
+    const brand = this.req['brand'] || 'chemtronics';
+    return brand === 'hydroworx' ? this.chartOfAccountModel2 : this.chartOfAccountModel;
+  } 
+
   async create(createChartOfAccountDto: CreateChartOfAccountDto) {
-    const created = new this.chartOfAccountModel(createChartOfAccountDto);
+    const chartOfAccountModel = this.getModel();
+    const created = new chartOfAccountModel(createChartOfAccountDto);
     await created.save();
     return created;
   }
 
   async findAll() {
-    return this.chartOfAccountModel.find().exec();
+    const chartOfAccountModel = this.getModel();
+    return chartOfAccountModel.find().exec();
   }
 
   async findOne(id: string) {
-    return this.chartOfAccountModel.findById(id).exec();
+    const chartOfAccountModel = this.getModel();
+    return chartOfAccountModel.findById(id).exec();
   }
 
   async update(id: string, updateChartOfAccountDto: UpdateChartOfAccountDto) {
-    return this.chartOfAccountModel
+    const chartOfAccountModel = this.getModel();
+    return chartOfAccountModel
       .findByIdAndUpdate(id, updateChartOfAccountDto, { new: true })
       .exec();
   }
 
   async remove(id: string) {
-    const deleted = await this.chartOfAccountModel.findByIdAndDelete(id).exec();
+    const chartOfAccountModel = this.getModel();
+    const deleted = await chartOfAccountModel.findByIdAndDelete(id).exec();
     return deleted;
   }
 }

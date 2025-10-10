@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JournalVoucher } from '../../entities/journal-voucher/journal-voucher';
 import { CreateJournalVoucherDto } from '../../dtos/create-journal-voucher/create-journal-voucher.dto';
+import { REQUEST } from '@nestjs/core';
 
 function parseMMDDYYYY(dateStr?: string): Date | undefined {
   if (!dateStr) return undefined;
@@ -15,18 +16,28 @@ function parseMMDDYYYY(dateStr?: string): Date | undefined {
   return new Date(`${year}-${paddedMonth}-${paddedDay}`);
 }
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class JournalvoucherService {
   constructor(
-    @InjectModel(JournalVoucher.name)
+    @Inject(REQUEST) private readonly req: any,
+    @InjectModel(JournalVoucher.name, 'chemtronics')
     private journalVoucherModel: Model<JournalVoucher>,
+    @InjectModel(JournalVoucher.name, 'hydroworx')
+    private journalVoucherModel2: Model<JournalVoucher>,
   ) {}
 
+  private getModel(): Model<JournalVoucher> {
+    const brand = this.req['brand'] || 'chemtronics';
+    return brand === 'hydroworx' ? this.journalVoucherModel2 : this.journalVoucherModel;
+  }
+
   async create(createJournalVoucherDto: CreateJournalVoucherDto) {
-    return await this.journalVoucherModel.create(createJournalVoucherDto);
+    const model = this.getModel();
+    return await model.create(createJournalVoucherDto);
   }
 
   async findAll(filters?: { startDate?: string; endDate?: string }) {
+    const model = this.getModel();
     const query: any = {};
     let startDate: Date | undefined;
     let endDate: Date | undefined;
@@ -48,10 +59,11 @@ export class JournalvoucherService {
     } else if (endDate) {
       query.date = { $lte: endDate };
     }
-    return await this.journalVoucherModel.find(query).exec();
+    return await model.find(query).exec();
   }
 
   async findByVoucherNumber(voucherNumber: string) {
-    return await this.journalVoucherModel.findOne({ voucherNumber }).exec();
+    const model = this.getModel();
+    return await model.findOne({ voucherNumber }).exec();
   }
 }
