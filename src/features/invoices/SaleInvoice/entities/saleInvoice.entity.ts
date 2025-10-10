@@ -17,6 +17,9 @@ export interface SaleInvoiceProduct {
 export class SaleInvoice {
   declare _id: mongoose.Types.ObjectId;
 
+    @Prop({ required: true, unique: true })
+    invoiceNumber: string;
+
   @Prop({ required: true })
   invoiceDate: Date;
 

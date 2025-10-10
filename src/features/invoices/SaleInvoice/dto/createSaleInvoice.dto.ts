@@ -59,4 +59,7 @@ export class CreateSaleInvoiceDto {
     exGstRate: number;
     exGstAmount: number;
   }>;
+  @ApiProperty()
+  @IsNotEmpty()
+  invoiceNumber: string;
 }

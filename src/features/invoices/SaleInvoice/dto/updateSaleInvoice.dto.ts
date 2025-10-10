@@ -59,4 +59,8 @@ export class UpdateSaleInvoiceDto {
     exGstRate: number;
     exGstAmount: number;
   }>;
+  
+  @ApiProperty()
+  @IsNotEmpty()
+  invoiceNumber: string;
 }
