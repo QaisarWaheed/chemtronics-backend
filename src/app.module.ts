@@ -10,7 +10,7 @@ import { AccountsModule } from './features/accounts/accounts.module';
 @Module({
   imports: [
     MongooseModule.forRoot(process.env.MONGO_URI ?? '', {
-      connectionName: 'chemtronics',
+      connectionName: 'test',
     }),
     MongooseModule.forRoot(process.env.MONGO_URI2 ?? '', {
       connectionName: 'hydroworx',

@@ -6,7 +6,7 @@ import { DeliveryChalanController } from './controllers/delivery-chalan.controll
 import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: 'DeliveryChalan', schema: DeliveryChalanSchema }], 'chemtronics'),
+  imports: [MongooseModule.forFeature([{ name: 'DeliveryChalan', schema: DeliveryChalanSchema }], 'test'),
   MongooseModule.forFeature([{ name: 'DeliveryChalan', schema: DeliveryChalanSchema }], 'hydroworx')
 ],
 

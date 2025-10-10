@@ -16,13 +16,13 @@ import { REQUEST } from '@nestjs/core';
 export class ProductsService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(Products.name, 'chemtronics') private readonly productModel: Model<Products>,
+    @InjectModel(Products.name, 'test') private readonly productModel: Model<Products>,
     @InjectModel(Products.name, 'hydroworx') private readonly productModel2: Model<Products>,
   ) {}
 
 
      private getModel(): Model<Products> {
-    const brand = this.req['brand'] || 'chemtronics';
+    const brand = this.req['brand'] || 'test';
     return brand === 'hydroworx' ? this.productModel2 : this.productModel;
   }
 

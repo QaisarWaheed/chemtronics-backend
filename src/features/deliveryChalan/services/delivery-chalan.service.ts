@@ -14,7 +14,7 @@ import { REQUEST } from '@nestjs/core';
 export class DeliveryChalanService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
- @InjectModel(DeliveryChalan.name, 'chemtronics')
+ @InjectModel(DeliveryChalan.name, 'test')
     private deliveryChalanModel: Model<DeliveryChalan>,
     @InjectModel(DeliveryChalan.name, 'hydroworx')
     private deliveryChalanModel2: Model<DeliveryChalan>,
@@ -24,7 +24,7 @@ export class DeliveryChalanService {
 
 
   private getModel(): Model<DeliveryChalan> {
-    const brand = this.req['brand'] || 'chemtronics';
+    const brand = this.req['brand'] || 'test';
     return brand === 'hydroworx' ? this.deliveryChalanModel2 : this.deliveryChalanModel;
   }
 

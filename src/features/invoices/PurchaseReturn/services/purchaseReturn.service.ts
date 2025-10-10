@@ -11,7 +11,7 @@ export class PurchaseReturnService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
 
-    @InjectModel(PurchaseReturn.name, 'chemtronics')
+    @InjectModel(PurchaseReturn.name, 'test')
     private purchaseReturnModel: Model<PurchaseReturn>,
     @InjectModel(PurchaseReturn.name, 'hydroworx')
     private purchaseReturnModel2: Model<PurchaseReturn>,
@@ -19,7 +19,7 @@ export class PurchaseReturnService {
 
 
     private getModel(): Model<PurchaseReturn> {
-      const brand = this.req['brand'] || 'chemtronics';
+      const brand = this.req['brand'] || 'test';
       return brand === 'hydroworx' ? this.purchaseReturnModel2 : this.purchaseReturnModel;
     }
 

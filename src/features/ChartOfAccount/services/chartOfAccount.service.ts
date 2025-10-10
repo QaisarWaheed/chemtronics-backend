@@ -23,14 +23,14 @@ export class ChartOfAccountService {
   }
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(ChartOfAccount.name, 'chemtronics')
+    @InjectModel(ChartOfAccount.name, 'test')
     private chartOfAccountModel: Model<ChartOfAccount>,
     @InjectModel(ChartOfAccount.name, 'hydroworx')
     private chartOfAccountModel2: Model<ChartOfAccount>,
   ) {}
 
   private getModel(): Model<ChartOfAccount> {
-    const brand = this.req['brand'] || 'chemtronics';
+    const brand = this.req['brand'] || 'test';
     return brand === 'hydroworx' ? this.chartOfAccountModel2 : this.chartOfAccountModel;
   } 
 

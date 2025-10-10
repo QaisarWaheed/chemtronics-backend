@@ -12,14 +12,14 @@ export class StockopeningService {
 
 
 
-    @InjectModel(StockOpening.name, 'chemtronics')
+    @InjectModel(StockOpening.name, 'test')
     private readonly stockOpeningModel: Model<StockOpening>,
     @InjectModel(StockOpening.name, 'hydroworx')
     private readonly stockOpeningModel2: Model<StockOpening>,
   ) {}
 
   private getModel(): Model<StockOpening> {
-    const brand = this.req['brand'] || 'chemtronics';
+    const brand = this.req['brand'] || 'test';
     return brand === 'hydroworx' ? this.stockOpeningModel2 : this.stockOpeningModel;
   }
 

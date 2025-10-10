@@ -20,14 +20,14 @@ function parseMMDDYYYY(dateStr?: string): Date | undefined {
 export class JournalvoucherService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(JournalVoucher.name, 'chemtronics')
+    @InjectModel(JournalVoucher.name, 'test')
     private journalVoucherModel: Model<JournalVoucher>,
     @InjectModel(JournalVoucher.name, 'hydroworx')
     private journalVoucherModel2: Model<JournalVoucher>,
   ) {}
 
   private getModel(): Model<JournalVoucher> {
-    const brand = this.req['brand'] || 'chemtronics';
+    const brand = this.req['brand'] || 'test';
     return brand === 'hydroworx' ? this.journalVoucherModel2 : this.journalVoucherModel;
   }
 
