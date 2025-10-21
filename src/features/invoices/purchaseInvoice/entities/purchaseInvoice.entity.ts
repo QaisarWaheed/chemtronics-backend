@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 
@@ -12,8 +13,6 @@ export interface Supplier {
   name: string;
   code: number;
 }
-
-export type PurchaseTitle = 'Stock';
 
 @Schema({ timestamps: true })
 export class PurchaseInvoice {
@@ -34,7 +33,13 @@ export class PurchaseInvoice {
   purchaseAccount: string;
 
   @Prop()
-  purchaseTitle: PurchaseTitle;
+  purchaseTitle: string;
+
+  @Prop()
+  partyBillNumber: string;
+
+  @Prop()
+  partyBillDate: Date;
 
   @Prop({ required: true })
   totalAmount: number;

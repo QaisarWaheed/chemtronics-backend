@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable prettier/prettier */
 import {
   BadRequestException,
   Inject,
@@ -16,23 +19,20 @@ import { REQUEST } from '@nestjs/core';
 export class ProductsService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(Products.name, 'test') private readonly productModel: Model<Products>,
-    @InjectModel(Products.name, 'hydroworx') private readonly productModel2: Model<Products>,
+    @InjectModel(Products.name, 'test')
+    private readonly productModel: Model<Products>,
+    @InjectModel(Products.name, 'hydroworx')
+    private readonly productModel2: Model<Products>,
   ) {}
 
-
-     private getModel(): Model<Products> {
+  private getModel(): Model<Products> {
     const brand = this.req['brand'] || 'test';
     return brand === 'hydroworx' ? this.productModel2 : this.productModel;
   }
 
-
-
-
   async getAllProducts(): Promise<Products[] | null> {
     const productModel = this.getModel();
     return await productModel.find();
-   
   }
 
   async getProductByCode(code: number): Promise<Products | null> {

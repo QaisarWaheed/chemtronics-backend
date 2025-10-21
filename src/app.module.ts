@@ -9,7 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AccountsModule } from './features/accounts/accounts.module';
 @Module({
   imports: [
-     ConfigModule.forRoot({
+    ConfigModule.forRoot({
       isGlobal: true,
     }),
     MongooseModule.forRoot(process.env.MONGO_URI ?? '', {

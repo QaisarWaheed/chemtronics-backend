@@ -1,10 +1,11 @@
+/* eslint-disable prettier/prettier */
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-import type { PurchaseTitle } from '../entities/purchaseInvoice.entity';
 
 export class UpdatePurchaseInvoiceDto {
   @ApiProperty({ required: false })
   gst?: number;
+
   @ApiProperty({ required: false })
   customerName?: string;
 
@@ -22,11 +23,17 @@ export class UpdatePurchaseInvoiceDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  purchaseTitle: PurchaseTitle;
+  purchaseTitle: string;
 
   @ApiProperty()
   @IsNotEmpty()
   totalAmount: number;
+
+  @ApiProperty()
+  partyBillNumber: string;
+
+  @ApiProperty()
+  partyBillDate: Date;
 
   @ApiProperty()
   @IsNotEmpty()
