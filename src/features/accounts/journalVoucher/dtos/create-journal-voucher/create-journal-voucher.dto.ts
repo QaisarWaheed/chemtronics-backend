@@ -1,21 +1,22 @@
+/* eslint-disable prettier/prettier */
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateJournalVoucherDto {
-  @ApiProperty()
+  @ApiProperty({ required: true, type: Date })
   date: Date;
 
-  @ApiProperty()
+  @ApiProperty({ required: true })
   voucherNumber: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: true })
   accountNumber: string;
 
   @ApiProperty({ required: false })
   description?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, type: Number })
   credit?: number;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, type: Number })
   debit?: number;
 }

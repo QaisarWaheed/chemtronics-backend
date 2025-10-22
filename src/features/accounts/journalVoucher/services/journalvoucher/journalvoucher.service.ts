@@ -1,3 +1,7 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable prettier/prettier */
 import { Injectable, BadRequestException, Inject, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -28,12 +32,25 @@ export class JournalvoucherService {
 
   private getModel(): Model<JournalVoucher> {
     const brand = this.req['brand'] || 'test';
-    return brand === 'hydroworx' ? this.journalVoucherModel2 : this.journalVoucherModel;
+    return brand === 'hydroworx'
+      ? this.journalVoucherModel2
+      : this.journalVoucherModel;
   }
 
-  async create(createJournalVoucherDto: CreateJournalVoucherDto) {
+  async create(
+    createJournalVoucherDto:
+      | CreateJournalVoucherDto
+      | CreateJournalVoucherDto[],
+  ) {
     const model = this.getModel();
-    return await model.create(createJournalVoucherDto);
+    if (Array.isArray(createJournalVoucherDto)) {
+      // Insert multiple documents in a single operation
+      const newEntry = await model.insertMany(createJournalVoucherDto);
+
+      return newEntry;
+    }
+    const newEntry = await model.create(createJournalVoucherDto);
+    return newEntry;
   }
 
   async findAll(filters?: { startDate?: string; endDate?: string }) {
@@ -59,11 +76,12 @@ export class JournalvoucherService {
     } else if (endDate) {
       query.date = { $lte: endDate };
     }
-    return await model.find(query).exec();
+    // use .lean() so we return plain JS objects with all stored fields
+    return await model.find(query).lean().exec();
   }
 
   async findByVoucherNumber(voucherNumber: string) {
     const model = this.getModel();
-    return await model.findOne({ voucherNumber }).exec();
+    return await model.findOne({ voucherNumber }).lean().exec();
   }
 }

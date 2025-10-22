@@ -12,19 +12,22 @@ import { JournalvoucherService } from './journalVoucher/services/journalvoucher/
 import { JournalVoucherController } from './journalVoucher/journal-voucher/journal-voucher.controller';
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Cashbook.name, schema: CashbookSchema },
-      { name: JournalVoucher.name, schema: JournalVoucherSchema },
-      
-    ], 'test',),
-    MongooseModule.forFeature([
-      { name: Cashbook.name, schema: CashbookSchema },
-      { name: JournalVoucher.name, schema: JournalVoucherSchema },
-      
-    ], 'hydroworx',),
+    MongooseModule.forFeature(
+      [
+        { name: Cashbook.name, schema: CashbookSchema },
+        { name: JournalVoucher.name, schema: JournalVoucherSchema },
+      ],
+      'test',
+    ),
+    MongooseModule.forFeature(
+      [
+        { name: Cashbook.name, schema: CashbookSchema },
+        { name: JournalVoucher.name, schema: JournalVoucherSchema },
+      ],
+      'hydroworx',
+    ),
   ],
-
-
- 
+  controllers: [CashbookController, JournalVoucherController],
+  providers: [CashbookService, JournalvoucherService],
 })
 export class AccountsModule {}

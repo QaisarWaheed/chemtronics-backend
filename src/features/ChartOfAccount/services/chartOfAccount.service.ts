@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable prettier/prettier */
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -31,8 +34,10 @@ export class ChartOfAccountService {
 
   private getModel(): Model<ChartOfAccount> {
     const brand = this.req['brand'] || 'test';
-    return brand === 'hydroworx' ? this.chartOfAccountModel2 : this.chartOfAccountModel;
-  } 
+    return brand === 'hydroworx'
+      ? this.chartOfAccountModel2
+      : this.chartOfAccountModel;
+  }
 
   async create(createChartOfAccountDto: CreateChartOfAccountDto) {
     const chartOfAccountModel = this.getModel();
@@ -55,6 +60,13 @@ export class ChartOfAccountService {
     const chartOfAccountModel = this.getModel();
     return chartOfAccountModel
       .findByIdAndUpdate(id, updateChartOfAccountDto, { new: true })
+      .exec();
+  }
+
+  async updateOpeningBalance(id: string, debit: number, credit: number) {
+    const chartOfAccountModel = this.getModel();
+    return chartOfAccountModel
+      .findByIdAndUpdate(id, { debit: debit, credit: credit }, { new: true })
       .exec();
   }
 

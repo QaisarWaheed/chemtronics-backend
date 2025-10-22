@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   Controller,
   Get,
@@ -13,6 +14,7 @@ import { ChartOfAccountService } from '../services/chartOfAccount.service';
 import { CreateChartOfAccountDto } from '../dto/createChartOfAccount.dto';
 import { UpdateChartOfAccountDto } from '../dto/updateChartOfAccount.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { UpdateOpeningBalanceDto } from '../dto/updateOpeningBalance.dto';
 
 @ApiTags('Chart Of Account')
 @Controller('chart-of-account')
@@ -51,6 +53,20 @@ export class ChartOfAccountController {
     @Body() updateChartOfAccountDto: UpdateChartOfAccountDto,
   ) {
     return this.chartOfAccountService.update(id, updateChartOfAccountDto);
+  }
+
+  @Put('/openingBalance/:id')
+  async partialUpdate(
+    @Param('id') id: string,
+    @Body() updateOpeningBalanceDto: Partial<UpdateOpeningBalanceDto>,
+  ) {
+    console.log(updateOpeningBalanceDto);
+
+    await this.chartOfAccountService.updateOpeningBalance(
+      id,
+      updateOpeningBalanceDto.credit || 0,
+      updateOpeningBalanceDto.debit || 0,
+    );
   }
 
   @Delete(':id')

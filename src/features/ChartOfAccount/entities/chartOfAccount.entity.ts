@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 
@@ -99,6 +100,12 @@ export class ChartOfAccount {
 
   @Prop()
   salesTaxNo?: string;
+
+  @Prop()
+  credit?: number;
+
+  @Prop()
+  debit?: number;
 
   @Prop()
   ntn?: string;

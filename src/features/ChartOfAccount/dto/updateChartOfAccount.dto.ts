@@ -104,6 +104,14 @@ export class UpdateChartOfAccountDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  credit?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  debit?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   phoneNo?: string;
 
   @ApiProperty({ required: false })
