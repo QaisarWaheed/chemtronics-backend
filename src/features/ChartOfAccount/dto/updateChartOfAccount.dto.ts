@@ -49,6 +49,7 @@ export class UpdateChartOfAccountDto {
       '1410-Receivables Accounts',
       '1500-Advances & Commissions',
       '1510-Salesman Account',
+      '1520-Staff Account',
       '1220-Furniture & Fixtures',
       '2000-Liabilities',
       '2100-Capital',
