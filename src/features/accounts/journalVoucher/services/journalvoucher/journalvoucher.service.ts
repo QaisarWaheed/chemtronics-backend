@@ -84,4 +84,13 @@ export class JournalvoucherService {
     const model = this.getModel();
     return await model.findOne({ voucherNumber }).lean().exec();
   }
+
+  async remove(id: string) {
+    const model = this.getModel();
+    // Validate id
+    if (!id) throw new BadRequestException('ID is required');
+    const result = await model.findByIdAndDelete(id).lean().exec();
+    if (!result) throw new BadRequestException('Journal voucher not found');
+    return result;
+  }
 }

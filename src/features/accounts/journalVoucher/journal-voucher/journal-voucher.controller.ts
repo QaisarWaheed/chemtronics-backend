@@ -6,7 +6,7 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Post, Body, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { JournalvoucherService } from '../services/journalvoucher/journalvoucher.service';
 import { CreateJournalVoucherDto } from '../dtos/create-journal-voucher/create-journal-voucher.dto';
 import { ApiTags } from '@nestjs/swagger';
@@ -87,5 +87,11 @@ export class JournalVoucherController {
   @Get(':voucherNumber')
   async findByVoucherNumber(@Param('voucherNumber') voucherNumber: string) {
     return await this.journalVoucherService.findByVoucherNumber(voucherNumber);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: string) {
+    await this.journalVoucherService.remove(id);
   }
 }
