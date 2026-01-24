@@ -27,6 +27,7 @@ export type AccountType =
   | '2200-Current Liabilities'
   | '2210-Purchase Party'
   | '2220-Advance Exp.'
+  | '2230-Loan'
   | '2300-Other'
   | '2400-Salesman Account'
   | '2500-Bismillah'
