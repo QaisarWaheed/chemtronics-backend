@@ -1,7 +1,7 @@
-import { Entities } from './product.entity';
+import { Products } from './product.entity';
 
-describe('Entities', () => {
+describe('Products', () => {
   it('should be defined', () => {
-    expect(new Entities()).toBeDefined();
+    expect(new Products()).toBeDefined();
   });
 });
