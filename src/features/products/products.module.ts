@@ -8,7 +8,7 @@ import { ProductsService } from './services/products.service';
   imports: [
     MongooseModule.forFeature([
       { name: Products.name, schema: ProductsSchema },
-    ] , 'test',),
+    ] , 'chemtronics',),
     MongooseModule.forFeature([
       { name: Products.name, schema: ProductsSchema },
     ] , 'hydroworx',),

@@ -25,8 +25,14 @@ export class DeliveryChalanController {
   }
 
   @Get()
+
   findAll() {
     return this.deliveryChalanService.findAll();
+  }
+
+  @Get('search/party')
+  searchParty(@Body('partyName') partyName: string) {
+    return this.deliveryChalanService.searchPartyByName(partyName);
   }
 
   @Get(':id')

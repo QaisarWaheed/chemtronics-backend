@@ -9,14 +9,14 @@ import { REQUEST } from '@nestjs/core';
 export class PurchaseInvoiceService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(PurchaseInvoice.name, 'test')
+    @InjectModel(PurchaseInvoice.name, 'chemtronics')
     private purchaseInvoiceModel: Model<PurchaseInvoice>,
     @InjectModel(PurchaseInvoice.name, 'hydroworx')
     private purchaseInvoiceModel2: Model<PurchaseInvoice>,
   ) {}
 
   private getModel(): Model<PurchaseInvoice> {
-    const brand = this.req['brand'] || 'test';
+    const brand = this.req['brand'] || 'chemtronics';
     return brand === 'hydroworx' ? this.purchaseInvoiceModel2 : this.purchaseInvoiceModel;
   }
 

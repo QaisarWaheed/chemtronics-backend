@@ -20,12 +20,12 @@ import { REQUEST } from '@nestjs/core';
 export class AuthService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(UserEntity.name, 'test') private readonly userModel: Model<UserEntity>,
+    @InjectModel(UserEntity.name, 'chemtronics') private readonly userModel: Model<UserEntity>,
     @InjectModel(UserEntity.name, 'hydroworx') private readonly userModel2: Model<UserEntity>,
   ) {}
 
   private getModel(): Model<UserEntity> {
-    const brand = this.req['brand'] || 'test';
+    const brand = this.req['brand'] || 'chemtronics';
     return brand === 'hydroworx' ? this.userModel2 : this.userModel;
   }
 

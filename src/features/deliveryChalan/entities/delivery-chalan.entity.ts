@@ -2,6 +2,20 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { mongo } from 'mongoose';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
+export class DeliveryChalanItem {
+  @Prop()
+  srNo: number;
+
+  @Prop()
+  itemName: string;
+
+  @Prop()
+  unit: string;
+
+  @Prop()
+  quantity: number;
+}
+
  @Schema({ timestamps: true })
 export class DeliveryChalan {
  
@@ -24,6 +38,9 @@ export class DeliveryChalan {
 
   @Prop()
   partyAddress: string;
+
+  @Prop({ type: [Object] })
+  items: DeliveryChalanItem[];
 
 declare createAt: Date;
 declare updatedAt: Date;

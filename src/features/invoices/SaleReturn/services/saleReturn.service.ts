@@ -11,13 +11,13 @@ import { REQUEST } from '@nestjs/core';
 export class SaleReturnService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(SaleReturn.name, 'test') private saleReturnModel: Model<SaleReturn>,
+    @InjectModel(SaleReturn.name, 'chemtronics') private saleReturnModel: Model<SaleReturn>,
     @InjectModel(SaleReturn.name, 'hydroworx') private saleReturnModel2: Model<SaleReturn>,
   ) {}
 
 
   private getModel(): Model<SaleReturn> {
-    const brand = this.req['brand'] || 'test';
+    const brand = this.req['brand'] || 'chemtronics';
     return brand === 'hydroworx' ? this.saleReturnModel2 : this.saleReturnModel;
   }
 

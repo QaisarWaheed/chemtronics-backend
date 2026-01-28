@@ -1,4 +1,19 @@
+
 import { IsString, IsOptional, IsDateString } from 'class-validator';
+
+export class DeliveryChalanItemDto {
+  @IsOptional()
+  srNo?: number;
+
+  @IsOptional()
+  itemName?: string;
+
+  @IsOptional()
+  unit?: string;
+
+  @IsOptional()
+  quantity?: number;
+}
 
 export class CreateDeliveryChalanDto {
   @IsString()
@@ -20,6 +35,8 @@ export class CreateDeliveryChalanDto {
 
   @IsString()
   partyAddress: string;
+
+  items: DeliveryChalanItemDto[];
 }
 
 export class UpdateDeliveryChalanDto {
@@ -46,4 +63,7 @@ export class UpdateDeliveryChalanDto {
   @IsOptional()
   @IsString()
   partyAddress?: string;
+
+  @IsOptional()
+  items?: DeliveryChalanItemDto[];
 }

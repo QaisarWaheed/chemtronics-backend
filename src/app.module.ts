@@ -7,13 +7,14 @@ import { ChartOfAccountModule } from './features/ChartOfAccount/chart-of-account
 import { InvoiceModule } from './features/invoices/invoice.module';
 import { ConfigModule } from '@nestjs/config';
 import { AccountsModule } from './features/accounts/accounts.module';
+import { DeliveryChalanModule } from './features/deliveryChalan/delivery-chalan.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
     MongooseModule.forRoot(process.env.MONGO_URI ?? '', {
-      connectionName: 'test',
+      connectionName: 'chemtronics',
     }),
     MongooseModule.forRoot(process.env.MONGO_URI2 ?? '', {
       connectionName: 'hydroworx',
@@ -24,6 +25,7 @@ import { AccountsModule } from './features/accounts/accounts.module';
     InvoiceModule,
     ChartOfAccountModule,
     AccountsModule,
+    DeliveryChalanModule,
   ],
   controllers: [],
   providers: [],

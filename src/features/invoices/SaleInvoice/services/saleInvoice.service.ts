@@ -10,12 +10,12 @@ import { REQUEST } from '@nestjs/core';
 export class SaleInvoiceService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(SaleInvoice.name, 'test') private saleInvoiceModel: Model<SaleInvoice>,
+    @InjectModel(SaleInvoice.name, 'chemtronics') private saleInvoiceModel: Model<SaleInvoice>,
     @InjectModel(SaleInvoice.name, 'hydroworx') private saleInvoiceModel2: Model<SaleInvoice>,
   ) {}
 
   private getModel(): Model<SaleInvoice> {
-    const brand = this.req['brand'] || 'test';
+    const brand = this.req['brand'] || 'chemtronics';
     return brand === 'hydroworx' ? this.saleInvoiceModel2 : this.saleInvoiceModel;
   }
 
@@ -23,7 +23,7 @@ export class SaleInvoiceService {
     const saleInvoiceModel = this.getModel();
 
     // Enforce business rule: hydroworx invoices should have no tax
-    const brand = this.req['brand'] || 'test';
+    const brand = this.req['brand'] || 'chemtronics';
     const payload = { ...createSaleInvoiceDto } as any;
     if (brand === 'hydroworx' && Array.isArray(payload.products)) {
       payload.products = payload.products.map((p: any) => {
