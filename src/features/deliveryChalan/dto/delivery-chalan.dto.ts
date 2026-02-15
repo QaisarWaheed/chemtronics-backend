@@ -1,5 +1,4 @@
-
-import { IsString, IsOptional, IsDateString } from 'class-validator';
+import { IsArray, IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class DeliveryChalanItemDto {
   @IsOptional()
@@ -17,10 +16,10 @@ export class DeliveryChalanItemDto {
 
 export class CreateDeliveryChalanDto {
   @IsString()
-  chalanNo: string;
+  chalanNo!: string;
 
   @IsDateString()
-  deliveryDate: string;
+  deliveryDate!: string;
 
   @IsOptional()
   @IsString()
@@ -31,12 +30,13 @@ export class CreateDeliveryChalanDto {
   poDate?: string;
 
   @IsString()
-  partyName: string;
+  partyName!: string;
 
   @IsString()
-  partyAddress: string;
+  partyAddress!: string;
 
-  items: DeliveryChalanItemDto[];
+  @IsArray()
+  items!: DeliveryChalanItemDto[];
 }
 
 export class UpdateDeliveryChalanDto {
@@ -65,5 +65,6 @@ export class UpdateDeliveryChalanDto {
   partyAddress?: string;
 
   @IsOptional()
+  @IsArray()
   items?: DeliveryChalanItemDto[];
 }
