@@ -13,12 +13,21 @@ import { DeliveryChalanModule } from './features/deliveryChalan/delivery-chalan.
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    MongooseModule.forRoot(process.env.MONGO_URI ?? '', {
-      connectionName: 'chemtronics',
-    }),
-    MongooseModule.forRoot(process.env.MONGO_URI2 ?? '', {
-      connectionName: 'hydroworx',
-    }),
+    MongooseModule.forRoot(
+      process.env.MONGO_URI ??
+        'mongodb+srv://wasifzahoor296_db_user:nukebugs123@cluster0.k1szlzx.mongodb.net/Chemtronics?appName=Cluster0',
+      {
+        connectionName: 'chemtronics',
+      },
+    ),
+    MongooseModule.forRoot(
+      process.env.MONGO_URI2 ??
+        'mongodb+srv://wasifzahoor296_db_user:nukebugs123@cluster0.k1szlzx.mongodb.net/Hydroworx?appName=Cluster0',
+      {
+        connectionName: 'hydroworx',
+      },
+    ),
+    //test
     AuthModule,
     ProductsModule,
     StockOpeningModule,

@@ -3,8 +3,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { BrandMiddleware } from './middlewares/brand.middleware';
+import dns from 'dns';
 
 async function bootstrap() {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+
   const app = await NestFactory.create(AppModule);
   app.use(new BrandMiddleware().use);
 
@@ -24,4 +27,4 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
   await app.listen(3000, '0.0.0.0');
 }
-bootstrap();
+void bootstrap();
