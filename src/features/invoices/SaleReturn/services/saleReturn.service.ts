@@ -6,21 +6,20 @@ import { CreateSaleReturnDto } from '../dto/createSaleReturn.dto';
 import { UpdateSaleReturnDto } from '../dto/updateSaleReturn.dto';
 import { REQUEST } from '@nestjs/core';
 
-
 @Injectable({ scope: Scope.REQUEST })
 export class SaleReturnService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(SaleReturn.name, 'chemtronics') private saleReturnModel: Model<SaleReturn>,
-    @InjectModel(SaleReturn.name, 'hydroworx') private saleReturnModel2: Model<SaleReturn>,
+    @InjectModel(SaleReturn.name, 'chemtronics')
+    private saleReturnModel: Model<SaleReturn>,
+    @InjectModel(SaleReturn.name, 'hydroworx')
+    private saleReturnModel2: Model<SaleReturn>,
   ) {}
-
 
   private getModel(): Model<SaleReturn> {
     const brand = this.req['brand'] || 'chemtronics';
     return brand === 'hydroworx' ? this.saleReturnModel2 : this.saleReturnModel;
   }
-
 
   async create(createSaleReturnDto: CreateSaleReturnDto) {
     const saleReturnModel = this.getModel();

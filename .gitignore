@@ -40,6 +40,12 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
+nul
+
+# environment variables
+.env
+.env.*
+!.env.example
 
 # Runtime data
 pids

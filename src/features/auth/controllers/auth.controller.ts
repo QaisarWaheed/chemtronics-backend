@@ -27,12 +27,10 @@ export class AuthController {
     return await this.authService.getUserById(id);
   }
 
-
   @Post('/create-user')
   async creatUser(@Body() data: CreateUserDto) {
     return await this.authService.createUser(data);
   }
-
 
   @Post('/login')
   async login(@Body() data: { userName: string; password: string }) {

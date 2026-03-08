@@ -17,11 +17,12 @@ export class PurchaseReturnService {
     private purchaseReturnModel2: Model<PurchaseReturn>,
   ) {}
 
-
-    private getModel(): Model<PurchaseReturn> {
-      const brand = this.req['brand'] || 'chemtronics';
-      return brand === 'hydroworx' ? this.purchaseReturnModel2 : this.purchaseReturnModel;
-    }
+  private getModel(): Model<PurchaseReturn> {
+    const brand = this.req['brand'] || 'chemtronics';
+    return brand === 'hydroworx'
+      ? this.purchaseReturnModel2
+      : this.purchaseReturnModel;
+  }
 
   async create(createPurchaseReturnDto: CreatePurchaseReturnDto) {
     const purchaseReturnModel = this.getModel();

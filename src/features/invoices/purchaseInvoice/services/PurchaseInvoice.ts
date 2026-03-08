@@ -17,7 +17,9 @@ export class PurchaseInvoiceService {
 
   private getModel(): Model<PurchaseInvoice> {
     const brand = this.req['brand'] || 'chemtronics';
-    return brand === 'hydroworx' ? this.purchaseInvoiceModel2 : this.purchaseInvoiceModel;
+    return brand === 'hydroworx'
+      ? this.purchaseInvoiceModel2
+      : this.purchaseInvoiceModel;
   }
 
   async createPurchaseInvoice(
@@ -27,8 +29,6 @@ export class PurchaseInvoiceService {
     const newInvoice = await purchaseInvoiceModel.create(data);
     return newInvoice;
   }
-
-  
 
   async getAllPurchaseInvoices(): Promise<PurchaseInvoice[]> {
     const purchaseInvoiceModel = this.getModel();
@@ -45,10 +45,10 @@ export class PurchaseInvoiceService {
     data: Partial<UpdatePurchaseInvoiceDto>,
   ): Promise<PurchaseInvoice | null> {
     const purchaseInvoiceModel = this.getModel();
-    const updatedInvoice = await purchaseInvoiceModel.findByIdAndUpdate(id, data, { new: true })
+    const updatedInvoice = await purchaseInvoiceModel
+      .findByIdAndUpdate(id, data, { new: true })
       .exec();
     return updatedInvoice;
-
   }
 
   async deletePurchaseInvoice(id: string): Promise<PurchaseInvoice | null> {

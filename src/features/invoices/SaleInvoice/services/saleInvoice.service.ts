@@ -1,4 +1,10 @@
-import { Inject, Injectable, Scope, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Scope,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SaleInvoice } from '../entities/saleInvoice.entity';
@@ -10,13 +16,17 @@ import { REQUEST } from '@nestjs/core';
 export class SaleInvoiceService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-    @InjectModel(SaleInvoice.name, 'chemtronics') private saleInvoiceModel: Model<SaleInvoice>,
-    @InjectModel(SaleInvoice.name, 'hydroworx') private saleInvoiceModel2: Model<SaleInvoice>,
+    @InjectModel(SaleInvoice.name, 'chemtronics')
+    private saleInvoiceModel: Model<SaleInvoice>,
+    @InjectModel(SaleInvoice.name, 'hydroworx')
+    private saleInvoiceModel2: Model<SaleInvoice>,
   ) {}
 
   private getModel(): Model<SaleInvoice> {
     const brand = this.req['brand'] || 'chemtronics';
-    return brand === 'hydroworx' ? this.saleInvoiceModel2 : this.saleInvoiceModel;
+    return brand === 'hydroworx'
+      ? this.saleInvoiceModel2
+      : this.saleInvoiceModel;
   }
 
   async create(createSaleInvoiceDto: CreateSaleInvoiceDto) {
@@ -63,10 +73,14 @@ export class SaleInvoiceService {
       }
       if (error && error.code === 11000) {
         // duplicate key, likely invoiceNumber
-        throw new BadRequestException('Duplicate key error: possible duplicate invoiceNumber');
+        throw new BadRequestException(
+          'Duplicate key error: possible duplicate invoiceNumber',
+        );
       }
       // Surface the original message to the response (kept brief)
-      throw new InternalServerErrorException(error?.message || 'Failed to create sale invoice');
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to create sale invoice',
+      );
     }
   }
 

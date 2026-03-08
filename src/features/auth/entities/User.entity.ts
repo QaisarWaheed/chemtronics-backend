@@ -12,6 +12,10 @@ export class UserEntity {
 
   @ApiProperty()
   @Prop()
+  userName: string;
+
+  @ApiProperty()
+  @Prop()
   fullName: string;
 
   @ApiProperty()

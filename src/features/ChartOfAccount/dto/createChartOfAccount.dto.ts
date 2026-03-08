@@ -10,7 +10,7 @@ import type {
 export class CreateChartOfAccountDto {
   @ApiProperty()
   @IsNotEmpty()
-  selectedCode: string;
+  selectedCode!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -22,19 +22,19 @@ export class CreateChartOfAccountDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  accountCode: string;
+  accountCode!: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  level: string;
+  level!: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  accountName: string;
+  accountName!: string;
 
   @ApiProperty({ enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'] })
   @IsNotEmpty()
-  accountType: AccountType;
+  accountType!: AccountType;
 
   @ApiProperty({
     enum: [
@@ -90,15 +90,15 @@ export class CreateChartOfAccountDto {
     ],
   })
   @IsNotEmpty()
-  parentAccount: ParentAccount;
+  parentAccount!: ParentAccount;
 
   @ApiProperty({ enum: ['Group', 'Detail'] })
   @IsNotEmpty()
-  type: AccountGroupType;
+  type!: AccountGroupType;
 
   @ApiProperty({ default: false })
   @IsBoolean()
-  isParty: boolean;
+  isParty!: boolean;
 
   @ApiProperty({ required: false })
   @IsOptional()

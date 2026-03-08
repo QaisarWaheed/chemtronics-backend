@@ -14,18 +14,17 @@ import { REQUEST } from '@nestjs/core';
 export class DeliveryChalanService {
   constructor(
     @Inject(REQUEST) private readonly req: any,
-   @InjectModel(DeliveryChalan.name, 'chemtronics')
-   private deliveryChalanModel: Model<DeliveryChalan>,
+    @InjectModel(DeliveryChalan.name, 'chemtronics')
+    private deliveryChalanModel: Model<DeliveryChalan>,
     @InjectModel(DeliveryChalan.name, 'hydroworx')
     private deliveryChalanModel2: Model<DeliveryChalan>,
-
-     
   ) {}
-
 
   private getModel(): Model<DeliveryChalan> {
     const brand = this.req['brand'] || 'chemtronics';
-    return brand === 'hydroworx' ? this.deliveryChalanModel2 : this.deliveryChalanModel;
+    return brand === 'hydroworx'
+      ? this.deliveryChalanModel2
+      : this.deliveryChalanModel;
   }
 
   async create(dto: CreateDeliveryChalanDto): Promise<DeliveryChalan> {
@@ -39,9 +38,32 @@ export class DeliveryChalanService {
     return deliveryChalanModel.find();
   }
 
+  async search(term?: string, status?: string): Promise<DeliveryChalan[]> {
+    const deliveryChalanModel = this.getModel();
+    const query: any = {};
+
+    // Multi-field search: id, partyName, poNo
+    if (term && term.trim()) {
+      query.$or = [
+        { id: { $regex: term, $options: 'i' } },
+        { partyName: { $regex: term, $options: 'i' } },
+        { poNo: { $regex: term, $options: 'i' } },
+      ];
+    }
+
+    // Optional status filter
+    if (status && status.trim()) {
+      query.status = status;
+    }
+
+    return deliveryChalanModel.find(query);
+  }
+
   async searchPartyByName(partyName: string): Promise<DeliveryChalan[]> {
     const deliveryChalanModel = this.getModel();
-    return deliveryChalanModel.find({ partyName: { $regex: partyName, $options: 'i' } });
+    return deliveryChalanModel.find({
+      partyName: { $regex: partyName, $options: 'i' },
+    });
   }
 
   async findOne(id: string): Promise<DeliveryChalan> {
@@ -50,7 +72,7 @@ export class DeliveryChalanService {
     if (isValidObjectId(id)) {
       chalan = await deliveryChalanModel.findById(id);
     } else {
-      chalan = await deliveryChalanModel.findOne({ chalanNo: id });
+      chalan = await deliveryChalanModel.findOne({ id: id });
     }
     if (!chalan) throw new NotFoundException('Delivery Chalan not found');
     return chalan;
@@ -60,11 +82,16 @@ export class DeliveryChalanService {
     const deliveryChalanModel = this.getModel();
     let updatedChalan;
     if (isValidObjectId(id)) {
-      updatedChalan = await deliveryChalanModel.findByIdAndUpdate(id, dto, { new: true }).exec();
+      updatedChalan = await deliveryChalanModel
+        .findByIdAndUpdate(id, dto, { new: true })
+        .exec();
     } else {
-      updatedChalan = await deliveryChalanModel.findOneAndUpdate({ chalanNo: id }, dto, { new: true }).exec();
+      updatedChalan = await deliveryChalanModel
+        .findOneAndUpdate({ id: id }, dto, { new: true })
+        .exec();
     }
-    if (!updatedChalan) throw new NotFoundException('Delivery Chalan not found');
+    if (!updatedChalan)
+      throw new NotFoundException('Delivery Chalan not found');
     return updatedChalan;
   }
 
@@ -74,7 +101,7 @@ export class DeliveryChalanService {
     if (isValidObjectId(id)) {
       result = await deliveryChalanModel.deleteOne({ _id: id });
     } else {
-      result = await deliveryChalanModel.deleteOne({ chalanNo: id });
+      result = await deliveryChalanModel.deleteOne({ id: id });
     }
     if (!result.acknowledged || result.deletedCount === 0)
       throw new NotFoundException('Delivery Chalan not found');

@@ -6,12 +6,14 @@ import { ChartOfAccountService } from './services/chartOfAccount.service';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: 'ChartOfAccount', schema: ChartOfAccountSchema },
-    ], 'chemtronics',),
-    MongooseModule.forFeature([
-      { name: 'ChartOfAccount', schema: ChartOfAccountSchema },
-    ], 'hydroworx',),
+    MongooseModule.forFeature(
+      [{ name: 'ChartOfAccount', schema: ChartOfAccountSchema }],
+      'chemtronics',
+    ),
+    MongooseModule.forFeature(
+      [{ name: 'ChartOfAccount', schema: ChartOfAccountSchema }],
+      'hydroworx',
+    ),
   ],
   controllers: [ChartOfAccountController],
   providers: [ChartOfAccountService],

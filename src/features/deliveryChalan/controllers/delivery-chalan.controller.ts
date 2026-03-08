@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { DeliveryChalanService } from '../services/delivery-chalan.service';
@@ -25,28 +26,30 @@ export class DeliveryChalanController {
   }
 
   @Get()
-
   findAll() {
     return this.deliveryChalanService.findAll();
   }
 
-  @Get('search/party')
-  searchParty(@Body('partyName') partyName: string) {
-    return this.deliveryChalanService.searchPartyByName(partyName);
+  @Get('search')
+  search(
+    @Query('term') term?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.deliveryChalanService.search(term, status);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.deliveryChalanService.findOne((id));
+    return this.deliveryChalanService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateDeliveryChalanDto) {
-    return this.deliveryChalanService.update((id), dto);
+    return this.deliveryChalanService.update(id, dto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.deliveryChalanService.remove((id));
+    return this.deliveryChalanService.remove(id);
   }
 }

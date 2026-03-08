@@ -1,36 +1,43 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { mongo } from 'mongoose';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import mongoose from 'mongoose';
 
 export class DeliveryChalanItem {
   @Prop()
-  srNo: number;
+  sr: number;
 
   @Prop()
-  itemName: string;
+  itemCode: string;
+
+  @Prop()
+  particulars: string;
 
   @Prop()
   unit: string;
 
   @Prop()
-  quantity: number;
+  length: string;
+
+  @Prop()
+  width: string;
+
+  @Prop()
+  qty: string;
+
+  @Prop()
+  amount: number;
 }
 
- @Schema({ timestamps: true })
+@Schema({ timestamps: true })
 export class DeliveryChalan {
- 
- declare id: mongoose.Types.ObjectId;
+  declare _id: mongoose.Types.ObjectId;
 
   @Prop({ unique: true })
-  chalanNo: string;
+  id: string; // Challan ID (e.g., DC-0001)
 
-  @Prop({ type: Date })
-  deliveryDate: string;
-
-  @Prop({ nullable: true })
+  @Prop()
   poNo: string;
 
-  @Prop({ type: Date, nullable: true })
+  @Prop()
   poDate: string;
 
   @Prop()
@@ -39,12 +46,20 @@ export class DeliveryChalan {
   @Prop()
   partyAddress: string;
 
+  @Prop()
+  date: string;
+
+  @Prop()
+  deliveryDate: string;
+
+  @Prop()
+  status: string; // "Delivered" | "In Transit" | "Pending"
+
   @Prop({ type: [Object] })
   items: DeliveryChalanItem[];
 
-declare createAt: Date;
-declare updatedAt: Date;
-
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 const DeliveryChalanSchema = SchemaFactory.createForClass(DeliveryChalan);

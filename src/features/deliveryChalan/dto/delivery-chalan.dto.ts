@@ -1,39 +1,58 @@
-import { IsArray, IsDateString, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class DeliveryChalanItemDto {
-  @IsOptional()
-  srNo?: number;
+  @IsNumber()
+  sr!: number;
+
+  @IsString()
+  itemCode!: string;
+
+  @IsString()
+  particulars!: string;
+
+  @IsString()
+  unit!: string;
 
   @IsOptional()
-  itemName?: string;
+  @IsString()
+  length?: string;
 
   @IsOptional()
-  unit?: string;
+  @IsString()
+  width?: string;
+
+  @IsString()
+  qty!: string;
 
   @IsOptional()
-  quantity?: number;
+  @IsNumber()
+  amount?: number;
 }
 
 export class CreateDeliveryChalanDto {
   @IsString()
-  chalanNo!: string;
+  id!: string; // Changed from chalanNo to id to match frontend
 
-  @IsDateString()
-  deliveryDate!: string;
-
-  @IsOptional()
   @IsString()
-  poNo?: string;
+  poNo!: string;
 
-  @IsOptional()
   @IsDateString()
-  poDate?: string;
+  poDate!: string;
 
   @IsString()
   partyName!: string;
 
   @IsString()
   partyAddress!: string;
+
+  @IsDateString()
+  date!: string;
+
+  @IsDateString()
+  deliveryDate!: string;
+
+  @IsString()
+  status!: string; // "Delivered" | "In Transit" | "Pending"
 
   @IsArray()
   items!: DeliveryChalanItemDto[];
@@ -42,11 +61,7 @@ export class CreateDeliveryChalanDto {
 export class UpdateDeliveryChalanDto {
   @IsOptional()
   @IsString()
-  chalanNo?: string;
-
-  @IsOptional()
-  @IsDateString()
-  deliveryDate?: string;
+  id?: string;
 
   @IsOptional()
   @IsString()
@@ -63,6 +78,18 @@ export class UpdateDeliveryChalanDto {
   @IsOptional()
   @IsString()
   partyAddress?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date?: string;
+
+  @IsOptional()
+  @IsDateString()
+  deliveryDate?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 
   @IsOptional()
   @IsArray()

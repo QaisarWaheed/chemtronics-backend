@@ -15,18 +15,24 @@ import { SaleReturnService } from './SaleReturn/services/saleReturn.service';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: 'PurchaseInvoice', schema: PurchaseInvoiceSchema },
-      { name: 'PurchaseReturn', schema: PurchaseReturnSchema },
-      { name: 'SaleInvoice', schema: SaleInvoiceSchema },
-      { name: 'SaleReturn', schema: SaleReturnSchema },
-    ], 'chemtronics'),
-    MongooseModule.forFeature([
-          { name: 'PurchaseInvoice', schema: PurchaseInvoiceSchema },
-      { name: 'PurchaseReturn', schema: PurchaseReturnSchema },
-      { name: 'SaleInvoice', schema: SaleInvoiceSchema },
-      { name: 'SaleReturn', schema: SaleReturnSchema },
-    ], 'hydroworx'),
+    MongooseModule.forFeature(
+      [
+        { name: 'PurchaseInvoice', schema: PurchaseInvoiceSchema },
+        { name: 'PurchaseReturn', schema: PurchaseReturnSchema },
+        { name: 'SaleInvoice', schema: SaleInvoiceSchema },
+        { name: 'SaleReturn', schema: SaleReturnSchema },
+      ],
+      'chemtronics',
+    ),
+    MongooseModule.forFeature(
+      [
+        { name: 'PurchaseInvoice', schema: PurchaseInvoiceSchema },
+        { name: 'PurchaseReturn', schema: PurchaseReturnSchema },
+        { name: 'SaleInvoice', schema: SaleInvoiceSchema },
+        { name: 'SaleReturn', schema: SaleReturnSchema },
+      ],
+      'hydroworx',
+    ),
   ],
   controllers: [
     PurchaseInvoiceController,

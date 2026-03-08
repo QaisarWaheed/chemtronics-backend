@@ -4,13 +4,11 @@ import { StockOpening } from '../entities/stockopening-entity';
 import { Model } from 'mongoose';
 import { CreateStockOpeningDto } from '../dto/create-stock-opening-dto';
 import { REQUEST } from '@nestjs/core';
- 
+
 @Injectable({ scope: Scope.REQUEST })
 export class StockopeningService {
   constructor(
-   @Inject(REQUEST) private readonly req: any,
-
-
+    @Inject(REQUEST) private readonly req: any,
 
     @InjectModel(StockOpening.name, 'chemtronics')
     private readonly stockOpeningModel: Model<StockOpening>,
@@ -20,7 +18,9 @@ export class StockopeningService {
 
   private getModel(): Model<StockOpening> {
     const brand = this.req['brand'] || 'chemtronics';
-    return brand === 'hydroworx' ? this.stockOpeningModel2 : this.stockOpeningModel;
+    return brand === 'hydroworx'
+      ? this.stockOpeningModel2
+      : this.stockOpeningModel;
   }
 
   async getAllStockOpenings(): Promise<StockOpening[]> {

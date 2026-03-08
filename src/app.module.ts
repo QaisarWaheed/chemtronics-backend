@@ -5,28 +5,29 @@ import { ProductsModule } from './features/products/products.module';
 import { StockOpeningModule } from './features/stock-opening/stock-opening.module';
 import { ChartOfAccountModule } from './features/ChartOfAccount/chart-of-account.module';
 import { InvoiceModule } from './features/invoices/invoice.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AccountsModule } from './features/accounts/accounts.module';
 import { DeliveryChalanModule } from './features/deliveryChalan/delivery-chalan.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    MongooseModule.forRoot(
-      process.env.MONGO_URI ??
-        'mongodb+srv://wasifzahoor296_db_user:nukebugs123@cluster0.k1szlzx.mongodb.net/Chemtronics?appName=Cluster0',
-      {
-        connectionName: 'chemtronics',
-      },
-    ),
-    MongooseModule.forRoot(
-      process.env.MONGO_URI2 ??
-        'mongodb+srv://wasifzahoor296_db_user:nukebugs123@cluster0.k1szlzx.mongodb.net/Hydroworx?appName=Cluster0',
-      {
-        connectionName: 'hydroworx',
-      },
-    ),
+    MongooseModule.forRootAsync({
+      connectionName: 'chemtronics',
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.getOrThrow<string>('MONGO_URI_CHEMTRONICS'),
+      }),
+    }),
+    MongooseModule.forRootAsync({
+      connectionName: 'hydroworx',
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.getOrThrow<string>('MONGO_URI_HYDROWORX'),
+      }),
+    }),
     //test
     AuthModule,
     ProductsModule,
