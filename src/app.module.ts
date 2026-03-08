@@ -8,6 +8,10 @@ import { InvoiceModule } from './features/invoices/invoice.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AccountsModule } from './features/accounts/accounts.module';
 import { DeliveryChalanModule } from './features/deliveryChalan/delivery-chalan.module';
+import {
+  getChemtronicsMongoUri,
+  getHydroworxMongoUri,
+} from './config/runtime-config';
 
 @Module({
   imports: [
@@ -18,14 +22,14 @@ import { DeliveryChalanModule } from './features/deliveryChalan/delivery-chalan.
       connectionName: 'chemtronics',
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.getOrThrow<string>('MONGO_URI_CHEMTRONICS'),
+        uri: getChemtronicsMongoUri(configService),
       }),
     }),
     MongooseModule.forRootAsync({
       connectionName: 'hydroworx',
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.getOrThrow<string>('MONGO_URI_HYDROWORX'),
+        uri: getHydroworxMongoUri(configService),
       }),
     }),
     //test
