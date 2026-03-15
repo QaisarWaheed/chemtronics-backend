@@ -6,7 +6,10 @@ import {
   Query,
   BadRequestException,
   Param,
+  UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CashbookService } from '../services/cashbook.service';
 import type { EntryType } from '../entities/cashbook.entity';
 import { CreateCashbookDto } from '../dtos/CreateCashbook.dto';
@@ -24,6 +27,9 @@ function parseMMDDYYYY(dateStr?: string): Date | undefined {
   return new Date(`${year}-${paddedMonth}-${paddedDay}`);
 }
 
+@ApiTags('Cashbook')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('cashbook')
 export class CashbookController {
   constructor(private readonly cashbookService: CashbookService) {}

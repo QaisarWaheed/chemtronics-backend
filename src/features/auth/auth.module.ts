@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './services/auth.service';
+import { SeedService } from './services/seed.service';
 import { AuthController } from './controllers/auth.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import UserSchema, { UserEntity } from './entities/User.entity';
@@ -32,7 +33,7 @@ import { getJwtSecret } from '../../config/runtime-config';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, SeedService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

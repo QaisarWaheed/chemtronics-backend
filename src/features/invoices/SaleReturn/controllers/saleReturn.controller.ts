@@ -6,13 +6,17 @@ import {
   Param,
   Put,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { SaleReturnService } from '../services/saleReturn.service';
 import { CreateSaleReturnDto } from '../dto/createSaleReturn.dto';
 import { UpdateSaleReturnDto } from '../dto/updateSaleReturn.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Sale Return')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('sale-return')
 export class SaleReturnController {
   constructor(private readonly saleReturnService: SaleReturnService) {}

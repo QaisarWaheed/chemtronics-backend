@@ -6,13 +6,27 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Post, Body, Query, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { JournalvoucherService } from '../services/journalvoucher/journalvoucher.service';
 import { CreateJournalVoucherDto } from '../dtos/create-journal-voucher/create-journal-voucher.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ApiBody } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Journal Voucher')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('journal-vouchers')
 export class JournalVoucherController {
   constructor(private readonly journalVoucherService: JournalvoucherService) {}

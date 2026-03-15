@@ -5,6 +5,7 @@ export interface SaleInvoiceProduct {
   code: number;
   productName: string;
   hsCode: string;
+  description?: string;
   quantity: number;
   rate: number;
   netAmount: number;
@@ -52,6 +53,12 @@ export class SaleInvoice {
 
   @Prop()
   ntnNumber?: string;
+
+  @Prop()
+  strnNumber?: string;
+
+  @Prop({ default: false })
+  isChallanGenerated: boolean;
 
   @Prop({ required: true, type: [Object] })
   products: SaleInvoiceProduct[];

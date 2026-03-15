@@ -7,15 +7,19 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { DeliveryChalanService } from '../services/delivery-chalan.service';
 import {
   CreateDeliveryChalanDto,
   UpdateDeliveryChalanDto,
 } from '../dto/delivery-chalan.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('delivery-chalan')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('delivery-chalan')
 export class DeliveryChalanController {
   constructor(private readonly deliveryChalanService: DeliveryChalanService) {}
@@ -25,16 +29,18 @@ export class DeliveryChalanController {
     return this.deliveryChalanService.create(dto);
   }
 
+  @Post('convert/:invoiceId')
+  convertFromInvoice(@Param('invoiceId') invoiceId: string) {
+    return this.deliveryChalanService.createFromInvoice(invoiceId);
+  }
+
   @Get()
   findAll() {
     return this.deliveryChalanService.findAll();
   }
 
   @Get('search')
-  search(
-    @Query('term') term?: string,
-    @Query('status') status?: string,
-  ) {
+  search(@Query('term') term?: string, @Query('status') status?: string) {
     return this.deliveryChalanService.search(term, status);
   }
 

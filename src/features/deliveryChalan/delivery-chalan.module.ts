@@ -6,15 +6,22 @@ import DeliveryChalanSchema, {
 import { DeliveryChalanService } from './services/delivery-chalan.service';
 import { DeliveryChalanController } from './controllers/delivery-chalan.controller';
 import { MongooseModule } from '@nestjs/mongoose';
+import { SaleInvoiceSchema } from '../invoices/SaleInvoice/entities/saleInvoice.entity';
 
 @Module({
   imports: [
     MongooseModule.forFeature(
-      [{ name: 'DeliveryChalan', schema: DeliveryChalanSchema }],
+      [
+        { name: 'DeliveryChalan', schema: DeliveryChalanSchema },
+        { name: 'SaleInvoice', schema: SaleInvoiceSchema },
+      ],
       'chemtronics',
     ),
     MongooseModule.forFeature(
-      [{ name: 'DeliveryChalan', schema: DeliveryChalanSchema }],
+      [
+        { name: 'DeliveryChalan', schema: DeliveryChalanSchema },
+        { name: 'SaleInvoice', schema: SaleInvoiceSchema },
+      ],
       'hydroworx',
     ),
   ],

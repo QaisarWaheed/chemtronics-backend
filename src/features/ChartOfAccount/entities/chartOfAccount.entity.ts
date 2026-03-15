@@ -101,7 +101,7 @@ export class ChartOfAccount {
   phoneNo?: string;
 
   @Prop()
-  salesTaxNo?: string;
+  strn?: string;
 
   @Prop()
   credit?: number;

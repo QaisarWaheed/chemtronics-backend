@@ -1,4 +1,10 @@
-import { IsArray, IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class DeliveryChalanItemDto {
   @IsNumber()
@@ -94,4 +100,8 @@ export class UpdateDeliveryChalanDto {
   @IsOptional()
   @IsArray()
   items?: DeliveryChalanItemDto[];
+
+  @IsOptional()
+  @IsString()
+  invoiceReference?: string;
 }

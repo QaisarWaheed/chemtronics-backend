@@ -30,11 +30,17 @@ export function getChemtronicsMongoUri(configService: ConfigService): string {
 }
 
 export function getHydroworxMongoUri(configService: ConfigService): string {
-  return (
+  const mongoUri =
     normalizeConfigValue(configService.get<string>('MONGO_URI_HYDROWORX')) ||
-    getSharedMongoUri(configService) ||
-    getChemtronicsMongoUri(configService)
-  );
+    normalizeConfigValue(configService.get<string>('MONGO_URI2'));
+
+  if (!mongoUri) {
+    throw new Error(
+      'Missing MongoDB configuration for Hydroworx. Set MONGO_URI_HYDROWORX or MONGO_URI2.',
+    );
+  }
+
+  return mongoUri;
 }
 
 export function getJwtSecret(configService: ConfigService): string {

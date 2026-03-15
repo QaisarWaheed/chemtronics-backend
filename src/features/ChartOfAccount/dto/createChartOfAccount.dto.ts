@@ -110,7 +110,7 @@ export class CreateChartOfAccountDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  salesTaxNo?: string;
+  strn?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

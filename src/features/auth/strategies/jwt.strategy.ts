@@ -8,13 +8,18 @@ export interface JwtPayload {
   sub: string;
   userName: string;
   brand: string;
+  role: string;
 }
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        // Allow token via query param for window.open() PDF downloads
+        (req) => (req?.query?.token as string) ?? null,
+      ]),
       ignoreExpiration: false,
       secretOrKey: getJwtSecret(configService),
     });

@@ -8,6 +8,8 @@ import { InvoiceModule } from './features/invoices/invoice.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AccountsModule } from './features/accounts/accounts.module';
 import { DeliveryChalanModule } from './features/deliveryChalan/delivery-chalan.module';
+import { ReportsModule } from './features/reports/reports.module';
+import { AuditLogModule } from './features/audit-log/audit-log.module';
 import {
   getChemtronicsMongoUri,
   getHydroworxMongoUri,
@@ -40,6 +42,8 @@ import {
     ChartOfAccountModule,
     AccountsModule,
     DeliveryChalanModule,
+    ReportsModule,
+    AuditLogModule,
   ],
   controllers: [],
   providers: [],

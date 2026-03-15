@@ -12,7 +12,7 @@ export class CreatePurchaseReturnDto {
 
   @ApiProperty({ type: Object })
   @IsNotEmpty()
-  supplier: { name: string };
+  supplier: { name: string; code?: string };
 
   @ApiProperty()
   @IsNotEmpty()

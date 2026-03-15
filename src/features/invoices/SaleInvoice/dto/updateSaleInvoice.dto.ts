@@ -46,6 +46,10 @@ export class UpdateSaleInvoiceDto {
   @IsOptional()
   ntnNumber?: string;
 
+  @ApiProperty({ required: false })
+  @IsOptional()
+  strnNumber?: string;
+
   @ApiProperty({ type: [Object] })
   @IsNotEmpty()
   products: Array<{

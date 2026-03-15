@@ -6,13 +6,17 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { StockopeningService } from '../services/stockopening.service';
 import { CreateStockOpeningDto } from '../dto/create-stock-opening-dto';
 import { StockOpening } from '../entities/stockopening-entity';
 
 @ApiTags('stockOpening')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('stockOpening')
 export class StockOpeningController {
   constructor(private readonly stockOpeningService: StockopeningService) {}

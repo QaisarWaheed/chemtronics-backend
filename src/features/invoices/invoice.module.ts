@@ -12,6 +12,13 @@ import { SaleInvoiceSchema } from './SaleInvoice/entities/saleInvoice.entity';
 import { SaleReturnSchema } from './SaleReturn/entities/saleReturn.entity';
 import { SaleReturnController } from './SaleReturn/controllers/saleReturn.controller';
 import { SaleReturnService } from './SaleReturn/services/saleReturn.service';
+import ProductsSchema, { Products } from '../products/entities/product.entity';
+import {
+  JournalVoucher,
+  JournalVoucherSchema,
+} from '../accounts/journalVoucher/entities/journal-voucher/journal-voucher';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { PdfService } from './SaleInvoice/services/pdf.service';
 
 @Module({
   imports: [
@@ -21,6 +28,8 @@ import { SaleReturnService } from './SaleReturn/services/saleReturn.service';
         { name: 'PurchaseReturn', schema: PurchaseReturnSchema },
         { name: 'SaleInvoice', schema: SaleInvoiceSchema },
         { name: 'SaleReturn', schema: SaleReturnSchema },
+        { name: Products.name, schema: ProductsSchema },
+        { name: JournalVoucher.name, schema: JournalVoucherSchema },
       ],
       'chemtronics',
     ),
@@ -30,9 +39,12 @@ import { SaleReturnService } from './SaleReturn/services/saleReturn.service';
         { name: 'PurchaseReturn', schema: PurchaseReturnSchema },
         { name: 'SaleInvoice', schema: SaleInvoiceSchema },
         { name: 'SaleReturn', schema: SaleReturnSchema },
+        { name: Products.name, schema: ProductsSchema },
+        { name: JournalVoucher.name, schema: JournalVoucherSchema },
       ],
       'hydroworx',
     ),
+    AuditLogModule,
   ],
   controllers: [
     PurchaseInvoiceController,
@@ -45,6 +57,7 @@ import { SaleReturnService } from './SaleReturn/services/saleReturn.service';
     PurchaseReturnService,
     SaleInvoiceService,
     SaleReturnService,
+    PdfService,
   ],
 })
 export class InvoiceModule {}

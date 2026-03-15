@@ -13,9 +13,14 @@ async function bootstrap() {
   app.use(new BrandMiddleware().use);
 
   app.enableCors({
-    origin: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://chemtronics-backend-xufv.onrender.com',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
+    exposedHeaders: ['Content-Disposition'],
   });
   const config = new DocumentBuilder()
     .setTitle('Your API Title')

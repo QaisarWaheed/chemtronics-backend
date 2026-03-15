@@ -36,6 +36,11 @@ export class Products {
   @Prop()
   quantity: number;
 
+  /** Opening stock at the time the product was first created. Never changes after creation. */
+  @ApiProperty()
+  @Prop({ default: 0 })
+  openingQuantity: number;
+
   @ApiProperty()
   @Prop()
   minimumStockLevel: number;

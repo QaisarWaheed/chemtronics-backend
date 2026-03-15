@@ -12,10 +12,12 @@ import { REQUEST } from '@nestjs/core';
 @Injectable({ scope: Scope.REQUEST })
 export class ChartOfAccountService {
   async findByAccountType(accountType: string) {
-    return this.chartOfAccountModel.find({ accountType }).exec();
+    const brand = this.getBrand();
+    return this.getModel(brand).find({ accountType }).exec();
   }
   async findSalesAccounts() {
-    const salesAccounts = await this.chartOfAccountModel
+    const brand = this.getBrand();
+    const salesAccounts = await this.getModel(brand)
       .find({ accountType: 'sales' })
       .exec();
     return salesAccounts.map((acc) => ({
@@ -32,46 +34,67 @@ export class ChartOfAccountService {
     private chartOfAccountModel2: Model<ChartOfAccount>,
   ) {}
 
-  private getModel(): Model<ChartOfAccount> {
-    const brand = this.req['brand'] || 'chemtronics';
-    return brand === 'hydroworx'
-      ? this.chartOfAccountModel2
-      : this.chartOfAccountModel;
+  private getBrand(): string {
+    const brand = ((this.req['brand'] as string) || 'chemtronics')
+      .toLowerCase()
+      .trim();
+    console.log('Incoming Header x-brand:', brand);
+    return brand;
+  }
+
+  private getModel(brand: string): Model<ChartOfAccount> {
+    const model =
+      brand === 'hydroworx'
+        ? this.chartOfAccountModel2
+        : this.chartOfAccountModel;
+    console.log(
+      'Switching Model. Brand:',
+      brand,
+      '| Connection DB:',
+      model.db.name,
+    );
+    return model;
   }
 
   async create(createChartOfAccountDto: CreateChartOfAccountDto) {
-    const chartOfAccountModel = this.getModel();
+    const brand = this.getBrand();
+    const chartOfAccountModel = this.getModel(brand);
     const created = new chartOfAccountModel(createChartOfAccountDto);
     await created.save();
     return created;
   }
 
   async findAll() {
-    const chartOfAccountModel = this.getModel();
+    const brand = this.getBrand();
+    const chartOfAccountModel = this.getModel(brand);
     return chartOfAccountModel.find().exec();
   }
 
   async findOne(id: string) {
-    const chartOfAccountModel = this.getModel();
+    const brand = this.getBrand();
+    const chartOfAccountModel = this.getModel(brand);
     return chartOfAccountModel.findById(id).exec();
   }
 
   async update(id: string, updateChartOfAccountDto: UpdateChartOfAccountDto) {
-    const chartOfAccountModel = this.getModel();
+    const brand = this.getBrand();
+    const chartOfAccountModel = this.getModel(brand);
     return chartOfAccountModel
       .findByIdAndUpdate(id, updateChartOfAccountDto, { new: true })
       .exec();
   }
 
   async updateOpeningBalance(id: string, debit: number, credit: number) {
-    const chartOfAccountModel = this.getModel();
+    const brand = this.getBrand();
+    const chartOfAccountModel = this.getModel(brand);
     return chartOfAccountModel
       .findByIdAndUpdate(id, { debit: debit, credit: credit }, { new: true })
       .exec();
   }
 
   async remove(id: string) {
-    const chartOfAccountModel = this.getModel();
+    const brand = this.getBrand();
+    const chartOfAccountModel = this.getModel(brand);
     const deleted = await chartOfAccountModel.findByIdAndDelete(id).exec();
     return deleted;
   }

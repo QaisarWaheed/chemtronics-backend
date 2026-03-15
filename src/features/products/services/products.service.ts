@@ -20,13 +20,11 @@ export class ProductsService {
     @Inject(REQUEST) private readonly req: any,
     @InjectModel(Products.name, 'chemtronics')
     private readonly productModel: Model<Products>,
-    @InjectModel(Products.name, 'hydroworx')
-    private readonly productModel2: Model<Products>,
   ) {}
 
+  // Shared inventory: always use the chemtronics collection regardless of brand
   private getModel(): Model<Products> {
-    const brand = this.req['brand'] || 'chemtronics';
-    return brand === 'hydroworx' ? this.productModel2 : this.productModel;
+    return this.productModel;
   }
 
   async getAllProducts(): Promise<Products[] | null> {
@@ -45,13 +43,16 @@ export class ProductsService {
 
   async createProduct(data: CreateProductDto): Promise<Products | null> {
     const productModel = this.getModel();
-    const product = await productModel.findOne({
-      name: data.productName,
-    });
-    if (!product) {
-      return await productModel.create(data);
+    const existing = await productModel.findOne({ name: data.productName });
+    if (existing) {
+      throw new BadRequestException('Product already exists');
     }
-    throw new BadRequestException('Product already exists');
+    // Always mirror openingQuantity from quantity so the stock ledger
+    // has a permanent baseline for this product.
+    return await productModel.create({
+      ...data,
+      openingQuantity: data.quantity ?? 0,
+    });
   }
 
   async updateProduct(

@@ -1,41 +1,70 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 import type { Category } from '../entities/product.entity';
 
 export class UpdateProductDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  code: number;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  code?: number;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  productName: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  productName?: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  sku: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  category?: Category;
 
-  @ApiProperty({ type: String, enum: ['Chemicals', 'WaterPlants'] })
-  @IsNotEmpty()
-  category: Category;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  productDescription?: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  productDescription: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  unitPrice?: number;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  unit: string;
+  /** Cost price of the product */
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  costPrice?: number;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  rate: number;
+  /** Alias kept for backward compat (maps to costPrice) */
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  rate?: number;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  quantity: number;
+  /** Current stock quantity */
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  quantity?: number;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  minimumStockLevel: number;
+  /** Opening stock — fixed baseline set at creation */
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  openingQuantity?: number;
+
+  /** Alias for quantity used by some callers */
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  stockQuantity?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  minimumStockLevel?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

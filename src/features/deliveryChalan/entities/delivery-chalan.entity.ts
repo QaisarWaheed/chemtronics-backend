@@ -32,7 +32,10 @@ export class DeliveryChalan {
   declare _id: mongoose.Types.ObjectId;
 
   @Prop({ unique: true })
-  id: string; // Challan ID (e.g., DC-0001)
+  id: string; // Challan ID (e.g., DC-1001)
+
+  @Prop()
+  chalanNo?: string; // Mirror of id — satisfies legacy MongoDB unique index
 
   @Prop()
   poNo: string;
@@ -57,6 +60,9 @@ export class DeliveryChalan {
 
   @Prop({ type: [Object] })
   items: DeliveryChalanItem[];
+
+  @Prop()
+  invoiceReference?: string; // Original Sale Invoice number this challan was created from
 
   declare createdAt: Date;
   declare updatedAt: Date;

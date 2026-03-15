@@ -9,14 +9,18 @@ import {
   Delete,
   BadRequestException,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { ChartOfAccountService } from '../services/chartOfAccount.service';
 import { CreateChartOfAccountDto } from '../dto/createChartOfAccount.dto';
 import { UpdateChartOfAccountDto } from '../dto/updateChartOfAccount.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateOpeningBalanceDto } from '../dto/updateOpeningBalance.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Chart Of Account')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('chart-of-account')
 export class ChartOfAccountController {
   @Get('find-accountby-accountType/:accountType')

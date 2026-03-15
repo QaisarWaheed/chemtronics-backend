@@ -6,13 +6,19 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { PurchaseInvoiceService } from '../services/PurchaseInvoice';
 import { CreatePurchaseInvoiceDto } from '../dto/createPurchaseInvoice.dto';
 import { UpdatePurchaseInvoiceDto } from '../dto/updatePurchaseInvoice.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Purchase Invoice')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('purchase-invoice')
 export class PurchaseInvoiceController {
   constructor(
@@ -29,7 +35,11 @@ export class PurchaseInvoiceController {
     try {
       return await this.purchaseInvoiceService.createPurchaseInvoice(data);
     } catch (error) {
-      throw new Error(`Failed to create purchase invoice: ${error.message}`);
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        `Failed to create purchase invoice: ${(error as Error).message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 

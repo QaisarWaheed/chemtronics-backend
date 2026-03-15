@@ -63,7 +63,7 @@ export class AuthService {
   }): Promise<{ access_token: string; user: UserEntity }> {
     const userModel = this.getModel();
     const { userName, password } = data;
-    
+
     // Find user by userName only
     const user = await userModel.findOne({ userName });
     if (!user) {
@@ -82,6 +82,7 @@ export class AuthService {
       sub: user._id.toString(),
       userName: user.userName,
       brand,
+      role: user.role ?? 'Staff',
     };
     const access_token = this.jwtService.sign(payload);
 

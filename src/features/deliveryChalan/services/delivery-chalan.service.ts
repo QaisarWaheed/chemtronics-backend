@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException, Scope } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Scope,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DeliveryChalan } from '../entities/delivery-chalan.entity';
@@ -18,6 +24,10 @@ export class DeliveryChalanService {
     private deliveryChalanModel: Model<DeliveryChalan>,
     @InjectModel(DeliveryChalan.name, 'hydroworx')
     private deliveryChalanModel2: Model<DeliveryChalan>,
+    @InjectModel('SaleInvoice', 'chemtronics')
+    private saleInvoiceModelChem: Model<any>,
+    @InjectModel('SaleInvoice', 'hydroworx')
+    private saleInvoiceModelHydro: Model<any>,
   ) {}
 
   private getModel(): Model<DeliveryChalan> {
@@ -27,9 +37,96 @@ export class DeliveryChalanService {
       : this.deliveryChalanModel;
   }
 
+  private getSaleInvoiceModel(): Model<any> {
+    const brand = this.req['brand'] || 'chemtronics';
+    return brand === 'hydroworx'
+      ? this.saleInvoiceModelHydro
+      : this.saleInvoiceModelChem;
+  }
+
+  async createFromInvoice(invoiceId: string): Promise<DeliveryChalan> {
+    const saleInvoiceModel = this.getSaleInvoiceModel();
+    const deliveryChalanModel = this.getModel();
+
+    const invoice = (await saleInvoiceModel
+      .findById(invoiceId)
+      .lean()
+      .exec()) as any;
+    if (!invoice) {
+      throw new NotFoundException(`Sale invoice not found: ${invoiceId}`);
+    }
+
+    if (invoice.isChallanGenerated) {
+      throw new BadRequestException(
+        'A delivery challan has already been generated for this invoice.',
+      );
+    }
+
+    // Auto-generate next challan number from latest document within this brand
+    const latestChallan = (await deliveryChalanModel
+      .findOne({}, { id: 1, chalanNo: 1 })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec()) as any;
+
+    let nextNum = 1001;
+    if (latestChallan) {
+      const ref = latestChallan.id ?? latestChallan.chalanNo ?? '';
+      const m = String(ref).match(/(\d+)$/);
+      if (m) nextNum = parseInt(m[1], 10) + 1;
+    }
+    const challanId = `DC-${nextNum}`;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // Map invoice products → challan items (handles both productName/product and quantity/qty)
+    const rawProducts = Array.isArray(invoice.products)
+      ? invoice.products
+      : Array.isArray(invoice.items)
+        ? invoice.items
+        : [];
+    const items = (rawProducts as any[]).map((p: any, idx: number) => ({
+      sr: idx + 1,
+      itemCode: String(p.code ?? ''),
+      particulars: String(p.productName ?? p.product ?? ''),
+      unit: 'Nos',
+      length: '',
+      width: '',
+      qty: String(p.quantity ?? p.qty ?? 0),
+      amount: Number(p.netAmount ?? p.exGSTAmount ?? p.amount ?? 0),
+    }));
+
+    const challan = await deliveryChalanModel.create({
+      id: challanId,
+      chalanNo: challanId,
+      poNo: invoice.poNumber ?? '',
+      poDate: invoice.poDate
+        ? new Date(invoice.poDate).toISOString().split('T')[0]
+        : today,
+      partyName: invoice.accountTitle ?? '',
+      partyAddress: '',
+      date: today,
+      deliveryDate: today,
+      status: 'Pending',
+      items,
+      invoiceReference: invoice.invoiceNumber,
+    });
+
+    // Mark the invoice so duplicates are prevented
+    await saleInvoiceModel.findByIdAndUpdate(invoiceId, {
+      isChallanGenerated: true,
+    });
+
+    return challan;
+  }
+
   async create(dto: CreateDeliveryChalanDto): Promise<DeliveryChalan> {
     const deliveryChalanModel = this.getModel();
-    const chalan = await deliveryChalanModel.create(dto);
+    // Ensure chalanNo mirrors id to satisfy the legacy MongoDB unique index
+    const chalan = await deliveryChalanModel.create({
+      ...dto,
+      chalanNo: dto.id,
+    });
     return chalan;
   }
 
