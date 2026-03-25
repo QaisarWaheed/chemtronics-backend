@@ -12,12 +12,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(new BrandMiddleware().use);
 
+  // Parse CORS origins from env (comma-separated list)
+  const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000')
+    .split(',')
+    .map(origin => origin.trim());
+
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://chemtronics-backend-xufv.onrender.com',
-    ],
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
     exposedHeaders: ['Content-Disposition'],
