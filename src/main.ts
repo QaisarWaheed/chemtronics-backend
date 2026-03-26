@@ -13,9 +13,11 @@ async function bootstrap() {
   app.use(new BrandMiddleware().use);
 
   // Parse CORS origins from env (comma-separated list)
-  const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000')
+  const corsOrigins = (
+    process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000'
+  )
     .split(',')
-    .map(origin => origin.trim());
+    .map((origin) => origin.trim());
 
   app.enableCors({
     origin: corsOrigins,
