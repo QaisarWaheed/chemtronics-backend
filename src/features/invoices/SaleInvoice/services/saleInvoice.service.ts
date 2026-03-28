@@ -35,6 +35,10 @@ export class SaleInvoiceService {
     private journalModel: Model<JournalVoucher>,
     @InjectModel(JournalVoucher.name, 'hydroworx')
     private journalModel2: Model<JournalVoucher>,
+    @InjectModel('DeliveryChalan', 'chemtronics')
+    private deliveryChalanModel: Model<any>,
+    @InjectModel('DeliveryChalan', 'hydroworx')
+    private deliveryChalanModel2: Model<any>,
     @InjectConnection('chemtronics') private connChemtronics: Connection,
     @InjectConnection('hydroworx') private connHydroworx: Connection,
     private readonly auditLogService: AuditLogService,
@@ -408,5 +412,71 @@ export class SaleInvoiceService {
     } finally {
       await session.endSession();
     }
+  }
+
+  /**
+   * Converts a DeliveryChalan to a SaleInvoice
+   * @param deliveryChallanId DeliveryChalan Mongo _id or id
+   */
+  async convertFromDeliveryChallan(deliveryChallanId: string) {
+    const brand = this.getBrand();
+    const conn = this.getConnection(brand);
+    const model = brand === 'hydroworx'
+      ? this['deliveryChalanModel2']
+      : this['deliveryChalanModel'];
+    const mongoose = require('mongoose');
+    let chalanDoc;
+    if (mongoose.isValidObjectId(deliveryChallanId)) {
+      chalanDoc = await model.findById(deliveryChallanId).lean().exec();
+    } else {
+      chalanDoc = await model.findOne({ id: deliveryChallanId }).lean().exec();
+    }
+    if (!chalanDoc) throw new BadRequestException('DeliveryChalan not found');
+
+    // Generate a new invoice number
+    const saleInvoiceModel = this.getModel(brand);
+    const latestInvoice = await saleInvoiceModel.findOne({}, { invoiceNumber: 1 })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+    let nextNum = 1001;
+    if (latestInvoice && latestInvoice.invoiceNumber) {
+      const m = String(latestInvoice.invoiceNumber).match(/(\d+)$/);
+      if (m) nextNum = parseInt(m[1], 10) + 1;
+    }
+    const invoiceNumber = `INV-${nextNum}`;
+
+    // Map chalan items to sale invoice products
+    const products = (chalanDoc.items || []).map((item: any) => ({
+      code: item.itemCode ? Number(item.itemCode) : undefined,
+      productName: item.particulars,
+      hsCode: '',
+      quantity: Number(item.qty) || 0,
+      rate: item.amount ? Number(item.amount) / (Number(item.qty) || 1) : 0,
+      netAmount: item.amount || 0,
+      gstPercent: 0,
+      exGstRate: 0,
+      exGstAmount: 0,
+    }));
+
+    // Compose DTO
+    const dto: CreateSaleInvoiceDto = {
+      computerNumber: invoiceNumber,
+      invoiceDate: new Date(),
+      deliveryNumber: chalanDoc.id,
+      deliveryDate: chalanDoc.deliveryDate ? new Date(chalanDoc.deliveryDate) : new Date(),
+      poNumber: chalanDoc.poNo,
+      poDate: chalanDoc.poDate ? new Date(chalanDoc.poDate) : undefined,
+      account: chalanDoc.partyName || 'Unknown',
+      accountTitle: chalanDoc.partyName || 'Unknown',
+      saleAccount: '4000',
+      saleAccountTitle: 'Sales',
+      products,
+      invoiceNumber,
+    };
+
+    // Create the SaleInvoice using the existing create logic
+    const created = await this.create(dto);
+    return created;
   }
 }

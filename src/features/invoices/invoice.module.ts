@@ -19,6 +19,7 @@ import {
 } from '../accounts/journalVoucher/entities/journal-voucher/journal-voucher';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { PdfService } from './SaleInvoice/services/pdf.service';
+import DeliveryChalanSchema, { DeliveryChalan } from '../deliveryChalan/entities/delivery-chalan.entity';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PdfService } from './SaleInvoice/services/pdf.service';
         { name: 'SaleReturn', schema: SaleReturnSchema },
         { name: Products.name, schema: ProductsSchema },
         { name: JournalVoucher.name, schema: JournalVoucherSchema },
+        { name: 'DeliveryChalan', schema: DeliveryChalanSchema },
       ],
       'chemtronics',
     ),
@@ -41,6 +43,7 @@ import { PdfService } from './SaleInvoice/services/pdf.service';
         { name: 'SaleReturn', schema: SaleReturnSchema },
         { name: Products.name, schema: ProductsSchema },
         { name: JournalVoucher.name, schema: JournalVoucherSchema },
+        { name: 'DeliveryChalan', schema: DeliveryChalanSchema },
       ],
       'hydroworx',
     ),

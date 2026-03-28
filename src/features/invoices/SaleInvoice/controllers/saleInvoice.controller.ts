@@ -79,4 +79,12 @@ export class SaleInvoiceController {
   remove(@Param('id') id: string) {
     return this.saleInvoiceService.remove(id);
   }
+  /**
+   * Convert a DeliveryChalan to a SaleInvoice
+   * @param deliveryChallanId DeliveryChalan Mongo _id or id
+   */
+  @Post('convert/:deliveryChallanId')
+  async convertFromDeliveryChallan(@Param('deliveryChallanId') deliveryChallanId: string) {
+    return this.saleInvoiceService.convertFromDeliveryChallan(deliveryChallanId);
+  }
 }
