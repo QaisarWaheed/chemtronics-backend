@@ -90,16 +90,11 @@ export class SaleInvoiceController {
    * @param deliveryChallanId DeliveryChalan Mongo _id or id
    */
   @Post('convert/:deliveryChallanId')
-<<<<<<< HEAD
   async convertFromDeliveryChallan(
     @Param('deliveryChallanId') deliveryChallanId: string,
   ) {
     return this.saleInvoiceService.convertFromDeliveryChallan(
       deliveryChallanId,
     );
-=======
-  async convertFromDeliveryChallan(@Param('deliveryChallanId') deliveryChallanId: string) {
-    return this.saleInvoiceService.convertFromDeliveryChallan(deliveryChallanId);
->>>>>>> 34288807f8fe5dac80b45c165d471e663f160d76
   }
 }
