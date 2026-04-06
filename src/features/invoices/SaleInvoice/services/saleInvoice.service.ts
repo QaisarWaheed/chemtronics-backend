@@ -438,10 +438,16 @@ export class SaleInvoiceService {
   async convertFromDeliveryChallan(deliveryChallanId: string) {
     const brand = this.getBrand();
     const conn = this.getConnection(brand);
+<<<<<<< HEAD
     const model =
       brand === 'hydroworx'
         ? this['deliveryChalanModel2']
         : this['deliveryChalanModel'];
+=======
+    const model = brand === 'hydroworx'
+      ? this['deliveryChalanModel2']
+      : this['deliveryChalanModel'];
+>>>>>>> 34288807f8fe5dac80b45c165d471e663f160d76
     const mongoose = require('mongoose');
     let chalanDoc;
     if (mongoose.isValidObjectId(deliveryChallanId)) {
@@ -453,8 +459,12 @@ export class SaleInvoiceService {
 
     // Generate a new invoice number
     const saleInvoiceModel = this.getModel(brand);
+<<<<<<< HEAD
     const latestInvoice = await saleInvoiceModel
       .findOne({}, { invoiceNumber: 1 })
+=======
+    const latestInvoice = await saleInvoiceModel.findOne({}, { invoiceNumber: 1 })
+>>>>>>> 34288807f8fe5dac80b45c165d471e663f160d76
       .sort({ createdAt: -1 })
       .lean()
       .exec();
@@ -481,6 +491,7 @@ export class SaleInvoiceService {
     // Compose DTO
     const dto: CreateSaleInvoiceDto = {
       computerNumber: invoiceNumber,
+<<<<<<< HEAD
       invoiceDate: new Date().toISOString().split('T')[0],
       deliveryNumber: chalanDoc.id,
       deliveryDate: chalanDoc.deliveryDate
@@ -490,6 +501,13 @@ export class SaleInvoiceService {
       poDate: chalanDoc.poDate
         ? new Date(chalanDoc.poDate).toISOString().split('T')[0]
         : undefined,
+=======
+      invoiceDate: new Date(),
+      deliveryNumber: chalanDoc.id,
+      deliveryDate: chalanDoc.deliveryDate ? new Date(chalanDoc.deliveryDate) : new Date(),
+      poNumber: chalanDoc.poNo,
+      poDate: chalanDoc.poDate ? new Date(chalanDoc.poDate) : undefined,
+>>>>>>> 34288807f8fe5dac80b45c165d471e663f160d76
       account: chalanDoc.partyName || 'Unknown',
       accountTitle: chalanDoc.partyName || 'Unknown',
       saleAccount: '4000',
