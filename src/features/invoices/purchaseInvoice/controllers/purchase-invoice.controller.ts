@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpException,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { PurchaseInvoiceService } from '../services/PurchaseInvoice';
 import { CreatePurchaseInvoiceDto } from '../dto/createPurchaseInvoice.dto';
@@ -28,6 +29,11 @@ export class PurchaseInvoiceController {
   @Get('/all-purchase-invoices')
   async getAllPurchaseInvoices() {
     return this.purchaseInvoiceService.getAllPurchaseInvoices();
+  }
+
+  @Get('search')
+  async search(@Query('q') searchTerm?: string) {
+    return this.purchaseInvoiceService.search(searchTerm);
   }
 
   @Post('/create-purchase-invoice')

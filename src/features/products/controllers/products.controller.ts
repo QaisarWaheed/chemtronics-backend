@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ProductsService } from '../services/products.service';
 import { CreateProductDto } from '../dto/create-product-dto';
@@ -25,6 +26,11 @@ export class ProductsController {
   @Get()
   async getAllProducts() {
     return await this.productsService.getAllProducts();
+  }
+
+  @Get('search')
+  async search(@Query('q') searchTerm?: string) {
+    return await this.productsService.search(searchTerm);
   }
 
   @Get('product-by-code/:code')

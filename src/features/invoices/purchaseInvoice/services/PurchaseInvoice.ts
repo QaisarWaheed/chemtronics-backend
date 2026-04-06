@@ -169,6 +169,22 @@ export class PurchaseInvoiceService {
     return purchaseInvoiceModel.find().exec();
   }
 
+  async search(searchTerm?: string): Promise<PurchaseInvoice[]> {
+    const purchaseInvoiceModel = this.getModel();
+    const query: any = {};
+
+    // Case-insensitive multi-field search
+    if (searchTerm && searchTerm.trim()) {
+      query.$or = [
+        { invoiceNumber: { $regex: searchTerm, $options: 'i' } },
+        { vendorName: { $regex: searchTerm, $options: 'i' } },
+        { 'products.code': { $regex: searchTerm, $options: 'i' } },
+      ];
+    }
+
+    return purchaseInvoiceModel.find(query).exec();
+  }
+
   async getPurchaseInvoiceById(id: string): Promise<PurchaseInvoice | null> {
     const purchaseInvoiceModel = this.getModel();
     return purchaseInvoiceModel.findById(id).exec();

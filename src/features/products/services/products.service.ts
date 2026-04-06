@@ -32,6 +32,22 @@ export class ProductsService {
     return await productModel.find();
   }
 
+  async search(searchTerm?: string): Promise<Products[] | null> {
+    const productModel = this.getModel();
+    const query: any = {};
+
+    // Case-insensitive multi-field search
+    if (searchTerm && searchTerm.trim()) {
+      query.$or = [
+        { code: { $regex: searchTerm, $options: 'i' } },
+        { productName: { $regex: searchTerm, $options: 'i' } },
+        { category: { $regex: searchTerm, $options: 'i' } },
+      ];
+    }
+
+    return await productModel.find(query);
+  }
+
   async getProductByCode(code: number): Promise<Products | null> {
     const productModel = this.getModel();
     const product = await productModel.findOne({ code });

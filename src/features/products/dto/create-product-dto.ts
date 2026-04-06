@@ -1,37 +1,54 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  Min,
+  IsString,
+  IsEnum,
+  Max,
+} from 'class-validator';
 import type { Category } from '../entities/product.entity';
 
 export class CreateProductDto {
   @ApiProperty()
-  @IsNotEmpty()
-  code: number;
+  @IsNumber({}, { message: 'Product code must be a number' })
+  @Min(1, { message: 'Product code must be at least 1' })
+  code!: number;
 
   @ApiProperty()
-  @IsNotEmpty()
-  productName: string;
+  @IsString({ message: 'Product name must be a string' })
+  @IsNotEmpty({ message: 'Product name is required' })
+  productName!: string;
 
   @ApiProperty({ type: String, enum: ['Chemicals', 'Equipments', 'Services'] })
-  @IsNotEmpty()
-  category: Category;
+  @IsEnum(['Chemicals', 'Equipments', 'Services'], {
+    message: 'Category must be one of: Chemicals, Equipments, Services',
+  })
+  @IsNotEmpty({ message: 'Category is required' })
+  category!: Category;
 
   @ApiProperty()
-  @IsNotEmpty()
-  productDescription: string;
+  @IsString({ message: 'Product description must be a string' })
+  @IsNotEmpty({ message: 'Product description is required' })
+  productDescription!: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  unitPrice: number;
+  @IsNumber({}, { message: 'Unit price must be a number' })
+  @Min(0, { message: 'Unit price cannot be negative' })
+  unitPrice!: number;
 
   @ApiProperty()
-  @IsNotEmpty()
-  costPrice: number;
+  @IsNumber({}, { message: 'Cost price must be a number' })
+  @Min(0, { message: 'Cost price cannot be negative' })
+  costPrice!: number;
 
   @ApiProperty()
-  @IsNotEmpty()
-  quantity: number;
+  @IsNumber({}, { message: 'Quantity must be a number' })
+  @Min(0, { message: 'Quantity cannot be negative' })
+  quantity!: number;
 
   @ApiProperty()
-  @IsNotEmpty()
-  minimumStockLevel: number;
+  @IsNumber({}, { message: 'Minimum stock level must be a number' })
+  @Min(0, { message: 'Minimum stock level cannot be negative' })
+  minimumStockLevel!: number;
 }

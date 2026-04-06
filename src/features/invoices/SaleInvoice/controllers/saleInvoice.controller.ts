@@ -11,6 +11,7 @@ import {
   Req,
   Res,
   NotFoundException,
+  Query,
 } from '@nestjs/common';
 import { SaleInvoiceService } from '../services/saleInvoice.service';
 import { CreateSaleInvoiceDto } from '../dto/createSaleInvoice.dto';
@@ -38,6 +39,11 @@ export class SaleInvoiceController {
   @Get()
   findAll() {
     return this.saleInvoiceService.findAll();
+  }
+
+  @Get('search')
+  search(@Query('q') searchTerm?: string) {
+    return this.saleInvoiceService.search(searchTerm);
   }
 
   @Get(':id/pdf')
@@ -84,7 +90,11 @@ export class SaleInvoiceController {
    * @param deliveryChallanId DeliveryChalan Mongo _id or id
    */
   @Post('convert/:deliveryChallanId')
-  async convertFromDeliveryChallan(@Param('deliveryChallanId') deliveryChallanId: string) {
-    return this.saleInvoiceService.convertFromDeliveryChallan(deliveryChallanId);
+  async convertFromDeliveryChallan(
+    @Param('deliveryChallanId') deliveryChallanId: string,
+  ) {
+    return this.saleInvoiceService.convertFromDeliveryChallan(
+      deliveryChallanId,
+    );
   }
 }

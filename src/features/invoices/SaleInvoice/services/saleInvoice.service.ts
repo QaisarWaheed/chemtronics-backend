@@ -209,6 +209,23 @@ export class SaleInvoiceService {
     return saleInvoiceModel.find().exec();
   }
 
+  async search(searchTerm?: string) {
+    const brand = this.getBrand();
+    const saleInvoiceModel = this.getModel(brand);
+    const query: any = {};
+
+    // Case-insensitive multi-field search
+    if (searchTerm && searchTerm.trim()) {
+      query.$or = [
+        { invoiceNumber: { $regex: searchTerm, $options: 'i' } },
+        { accountTitle: { $regex: searchTerm, $options: 'i' } },
+        { 'products.code': { $regex: searchTerm, $options: 'i' } },
+      ];
+    }
+
+    return saleInvoiceModel.find(query).exec();
+  }
+
   async findOne(id: string) {
     const brand = this.getBrand();
     const saleInvoiceModel = this.getModel(brand);
@@ -421,9 +438,10 @@ export class SaleInvoiceService {
   async convertFromDeliveryChallan(deliveryChallanId: string) {
     const brand = this.getBrand();
     const conn = this.getConnection(brand);
-    const model = brand === 'hydroworx'
-      ? this['deliveryChalanModel2']
-      : this['deliveryChalanModel'];
+    const model =
+      brand === 'hydroworx'
+        ? this['deliveryChalanModel2']
+        : this['deliveryChalanModel'];
     const mongoose = require('mongoose');
     let chalanDoc;
     if (mongoose.isValidObjectId(deliveryChallanId)) {
@@ -435,7 +453,8 @@ export class SaleInvoiceService {
 
     // Generate a new invoice number
     const saleInvoiceModel = this.getModel(brand);
-    const latestInvoice = await saleInvoiceModel.findOne({}, { invoiceNumber: 1 })
+    const latestInvoice = await saleInvoiceModel
+      .findOne({}, { invoiceNumber: 1 })
       .sort({ createdAt: -1 })
       .lean()
       .exec();
@@ -462,11 +481,15 @@ export class SaleInvoiceService {
     // Compose DTO
     const dto: CreateSaleInvoiceDto = {
       computerNumber: invoiceNumber,
-      invoiceDate: new Date(),
+      invoiceDate: new Date().toISOString().split('T')[0],
       deliveryNumber: chalanDoc.id,
-      deliveryDate: chalanDoc.deliveryDate ? new Date(chalanDoc.deliveryDate) : new Date(),
+      deliveryDate: chalanDoc.deliveryDate
+        ? new Date(chalanDoc.deliveryDate).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0],
       poNumber: chalanDoc.poNo,
-      poDate: chalanDoc.poDate ? new Date(chalanDoc.poDate) : undefined,
+      poDate: chalanDoc.poDate
+        ? new Date(chalanDoc.poDate).toISOString().split('T')[0]
+        : undefined,
       account: chalanDoc.partyName || 'Unknown',
       accountTitle: chalanDoc.partyName || 'Unknown',
       saleAccount: '4000',
