@@ -469,18 +469,102 @@ export class SaleInvoiceService {
     }
     const invoiceNumber = `INV-${nextNum}`;
 
-    // Map chalan items to sale invoice products
-    const products = (chalanDoc.items || []).map((item: any) => ({
-      code: item.itemCode ? Number(item.itemCode) : undefined,
-      productName: item.particulars,
-      hsCode: '',
-      quantity: Number(item.qty) || 0,
-      rate: item.amount ? Number(item.amount) / (Number(item.qty) || 1) : 0,
-      netAmount: item.amount || 0,
-      gstPercent: 0,
-      exGstRate: 0,
-      exGstAmount: 0,
-    }));
+    // Map challan items to sale invoice products and resolve product code safely.
+    const challanItems = Array.isArray(chalanDoc.items) ? chalanDoc.items : [];
+    if (challanItems.length === 0) {
+      throw new BadRequestException('Delivery challan has no items to convert');
+    }
+
+    const escapeRegex = (value: string) =>
+      value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const productModel = this.getProductModel();
+    const products: CreateSaleInvoiceDto['products'] = [];
+
+    for (let i = 0; i < challanItems.length; i++) {
+      const item = challanItems[i] as any;
+      const indexLabel = `#${i + 1}`;
+
+      const quantity = Number(item.qty);
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        throw new BadRequestException(
+          `Invalid quantity on challan item ${indexLabel}`,
+        );
+      }
+
+      const rawCode = String(item.itemCode ?? '').trim();
+      let resolvedCode = Number(rawCode);
+
+      if (!Number.isFinite(resolvedCode)) {
+        const codeMatch = rawCode.match(/\d+/);
+        if (codeMatch) {
+          resolvedCode = Number(codeMatch[0]);
+        }
+      }
+
+      let matchedProduct:
+        | { code?: number; unitPrice?: number; productName?: string }
+        | null = null;
+
+      if (Number.isFinite(resolvedCode)) {
+        matchedProduct = await productModel
+          .findOne({ code: resolvedCode }, { code: 1, unitPrice: 1, productName: 1 })
+          .lean()
+          .exec();
+      }
+
+      if (!Number.isFinite(resolvedCode)) {
+        const particulars = String(item.particulars ?? '').trim();
+        if (particulars) {
+          matchedProduct = await productModel
+            .findOne(
+              {
+                productName: {
+                  $regex: `^${escapeRegex(particulars)}$`,
+                  $options: 'i',
+                },
+              },
+              { code: 1, unitPrice: 1, productName: 1 },
+            )
+            .lean()
+            .exec();
+
+          if (matchedProduct?.code !== undefined) {
+            resolvedCode = Number(matchedProduct.code);
+          }
+        }
+      }
+
+      if (!Number.isFinite(resolvedCode)) {
+        throw new BadRequestException(
+          `Unable to resolve product code for challan item ${indexLabel}`,
+        );
+      }
+
+      const fallbackRate = Number(matchedProduct?.unitPrice);
+      const safeFallbackRate =
+        Number.isFinite(fallbackRate) && fallbackRate >= 0 ? fallbackRate : 0;
+
+      let netAmount = Number(item.amount);
+      if (!Number.isFinite(netAmount) || netAmount <= 0) {
+        netAmount = safeFallbackRate * quantity;
+      }
+
+      const rate = quantity > 0 ? netAmount / quantity : safeFallbackRate;
+      const name = String(item.particulars ?? '').trim();
+
+      products.push({
+        code: resolvedCode,
+        productName: name || matchedProduct?.productName || `Item ${indexLabel}`,
+        hsCode: 'N/A',
+        quantity,
+        rate,
+        netAmount,
+        gstPercent: 0,
+        exGstRate: 0,
+        exGstAmount: 0,
+      });
+    }
 
     // Compose DTO
     const dto: CreateSaleInvoiceDto = {
