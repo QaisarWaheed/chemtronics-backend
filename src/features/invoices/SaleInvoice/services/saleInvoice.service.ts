@@ -502,13 +502,18 @@ export class SaleInvoiceService {
         }
       }
 
-      let matchedProduct:
-        | { code?: number; unitPrice?: number; productName?: string }
-        | null = null;
+      let matchedProduct: {
+        code?: number;
+        unitPrice?: number;
+        productName?: string;
+      } | null = null;
 
       if (Number.isFinite(resolvedCode)) {
         matchedProduct = await productModel
-          .findOne({ code: resolvedCode }, { code: 1, unitPrice: 1, productName: 1 })
+          .findOne(
+            { code: resolvedCode },
+            { code: 1, unitPrice: 1, productName: 1 },
+          )
           .lean()
           .exec();
       }
@@ -555,7 +560,8 @@ export class SaleInvoiceService {
 
       products.push({
         code: resolvedCode,
-        productName: name || matchedProduct?.productName || `Item ${indexLabel}`,
+        productName:
+          name || matchedProduct?.productName || `Item ${indexLabel}`,
         hsCode: 'N/A',
         quantity,
         rate,
