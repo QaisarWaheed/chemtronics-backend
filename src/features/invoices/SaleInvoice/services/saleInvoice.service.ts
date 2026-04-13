@@ -72,6 +72,18 @@ export class SaleInvoiceService {
     return brand === 'hydroworx' ? this.connHydroworx : this.connChemtronics;
   }
 
+  /**
+   * Products always use the chemtronics connection; the brand invoice/journal
+   * may use hydroworx. Nest opens one MongoClient per MongooseModule.forRoot,
+   * so a session from one client cannot be passed to models on another.
+   */
+  private inventoryUsesDifferentMongoClient(
+    productModel: Model<Products>,
+    brandConn: Connection,
+  ): boolean {
+    return productModel.db.getClient() !== brandConn.getClient();
+  }
+
   async create(createSaleInvoiceDto: CreateSaleInvoiceDto) {
     const brand = this.getBrand();
     const payload = { ...createSaleInvoiceDto } as any;
@@ -114,66 +126,101 @@ export class SaleInvoiceService {
 
     // NOTE: Mongoose transactions require a MongoDB Replica Set or Atlas cluster.
     // Standalone mongod instances do not support multi-document transactions.
-    const session = await conn.startSession();
+    const voucherNumber: string = payload.invoiceNumber;
+    const entryDate: Date = payload.invoiceDate
+      ? new Date(payload.invoiceDate)
+      : new Date();
+
     let savedInvoice!: SaleInvoice;
 
-    try {
-      await session.withTransaction(async () => {
-        // ── Step 1: Persist the sale invoice ────────────────────────────────
-        const created = new saleInvoiceModel(payload);
-        savedInvoice = await created.save({ session });
+    const runStockDecrements = async (session: any) => {
+      for (const item of payload.products as any[]) {
+        const qty = Number(item.quantity ?? item.qty) || 0;
+        if (qty <= 0) continue;
 
-        // ── Step 2: Decrement stock for each sold product ───────────────────
-        for (const item of payload.products as any[]) {
-          // Normalise qty field — frontend sends 'qty', DTO uses 'quantity'
-          const qty = Number(item.quantity ?? item.qty) || 0;
-          if (qty <= 0) continue;
-
-          // Atomic: only decrement if current quantity >= qty sold
-          const result = await productModel.updateOne(
-            { code: item.code, quantity: { $gte: qty } },
-            { $inc: { quantity: -qty } },
-            { session },
-          );
-
-          if (result.modifiedCount === 0) {
-            // Either product doesn't exist or stock is insufficient — roll back
-            throw new BadRequestException(
-              `Insufficient stock or product not found for product code: ${item.code}`,
-            );
-          }
-        }
-
-        // ── Step 3: Create double-entry journal voucher rows ─────────────────
-        // Both rows share the same voucherNumber (= invoiceNumber) so the
-        // JournalVouchers page can group them into one balanced entry.
-        const voucherNumber: string = payload.invoiceNumber;
-        const entryDate: Date = payload.invoiceDate
-          ? new Date(payload.invoiceDate)
-          : new Date();
-
-        await journalVoucherModel.insertMany(
-          [
-            {
-              // DR Accounts Receivable (customer owes us)
-              voucherNumber,
-              date: entryDate,
-              accountNumber: sanitizeCode(payload.accountNumber),
-              description: `Sale Invoice ${voucherNumber}`,
-              debit: invoiceTotal,
-            },
-            {
-              // CR Sales Revenue (revenue earned)
-              voucherNumber,
-              date: entryDate,
-              accountNumber: sanitizeCode(payload.saleAccount),
-              description: `Sale Invoice ${voucherNumber}`,
-              credit: invoiceTotal,
-            },
-          ],
+        const result = await productModel.updateOne(
+          { code: item.code, quantity: { $gte: qty } },
+          { $inc: { quantity: -qty } },
           { session },
         );
-      });
+
+        if (result.modifiedCount === 0) {
+          throw new BadRequestException(
+            `Insufficient stock or product not found for product code: ${item.code}`,
+          );
+        }
+      }
+    };
+
+    const runInvoiceAndJournal = async (session: any) => {
+      const created = new saleInvoiceModel(payload);
+      savedInvoice = await created.save({ session });
+
+      await journalVoucherModel.insertMany(
+        [
+          {
+            voucherNumber,
+            date: entryDate,
+            accountNumber: sanitizeCode(payload.accountNumber),
+            description: `Sale Invoice ${voucherNumber}`,
+            debit: invoiceTotal,
+          },
+          {
+            voucherNumber,
+            date: entryDate,
+            accountNumber: sanitizeCode(payload.saleAccount),
+            description: `Sale Invoice ${voucherNumber}`,
+            credit: invoiceTotal,
+          },
+        ],
+        { session },
+      );
+    };
+
+    try {
+      if (this.inventoryUsesDifferentMongoClient(productModel, conn)) {
+        const brandSession = await conn.startSession();
+        try {
+          await brandSession.withTransaction(() =>
+            runInvoiceAndJournal(brandSession),
+          );
+        } finally {
+          await brandSession.endSession();
+        }
+
+        const invSession = await this.connChemtronics.startSession();
+        try {
+          await invSession.withTransaction(() => runStockDecrements(invSession));
+        } catch (stockErr) {
+          const rollback = await conn.startSession();
+          try {
+            await rollback.withTransaction(async () => {
+              await saleInvoiceModel.findByIdAndDelete(savedInvoice._id, {
+                session: rollback,
+              });
+              await journalVoucherModel.deleteMany(
+                { voucherNumber },
+                { session: rollback },
+              );
+            });
+          } finally {
+            await rollback.endSession();
+          }
+          throw stockErr;
+        } finally {
+          await invSession.endSession();
+        }
+      } else {
+        const session = await conn.startSession();
+        try {
+          await session.withTransaction(async () => {
+            await runInvoiceAndJournal(session);
+            await runStockDecrements(session);
+          });
+        } finally {
+          await session.endSession();
+        }
+      }
 
       const user = this.req.user as JwtPayload | undefined;
       this.auditLogService.log({
@@ -198,8 +245,6 @@ export class SaleInvoiceService {
       throw new InternalServerErrorException(
         error?.message || 'Failed to create sale invoice',
       );
-    } finally {
-      await session.endSession();
     }
   }
 
@@ -271,83 +316,140 @@ export class SaleInvoiceService {
       0,
     );
 
-    const session = await conn.startSession();
+    const voucherNumber =
+      dto.invoiceNumber || (oldInvoice as any).invoiceNumber;
+    const entryDate = dto.invoiceDate
+      ? new Date(dto.invoiceDate)
+      : new Date();
+    const accountNumber = sanitizeCode(
+      dto.accountNumber || dto.account || '',
+    );
+    const saleAccount = sanitizeCode(dto.saleAccount || '');
+
     let updatedInvoice!: SaleInvoice;
 
-    try {
-      await session.withTransaction(async () => {
-        // ── Step 1: Restore stock from the old invoice (reverse original sale) ─
-        for (const item of (oldInvoice.products as any[]) ?? []) {
-          const qty = Number(item.quantity) || 0;
-          if (qty <= 0) continue;
-          await productModel.updateOne(
-            { code: item.code },
-            { $inc: { quantity: qty } },
-            { session },
-          );
-        }
-
-        // ── Step 2: Deduct stock for the new quantities ───────────────────────
-        for (const item of normalisedProducts) {
-          const qty = item.quantity;
-          if (qty <= 0) continue;
-          const result = await productModel.updateOne(
-            { code: item.code, quantity: { $gte: qty } },
-            { $inc: { quantity: -qty } },
-            { session },
-          );
-          if (result.modifiedCount === 0) {
-            throw new BadRequestException(
-              `Insufficient stock or product not found for product code: ${item.code}`,
-            );
-          }
-        }
-
-        // ── Step 3: Replace journal voucher entries ───────────────────────────
-        await journalVoucherModel.deleteMany(
-          { voucherNumber: (oldInvoice as any).invoiceNumber },
+    const runStockPhaseUpdate = async (session: any) => {
+      for (const item of (oldInvoice.products as any[]) ?? []) {
+        const qty = Number(item.quantity) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: qty } },
           { session },
         );
-        const voucherNumber =
-          dto.invoiceNumber || (oldInvoice as any).invoiceNumber;
-        const entryDate = dto.invoiceDate
-          ? new Date(dto.invoiceDate)
-          : new Date();
-        const accountNumber = sanitizeCode(
-          dto.accountNumber || dto.account || '',
+      }
+
+      for (const item of normalisedProducts) {
+        const qty = item.quantity;
+        if (qty <= 0) continue;
+        const result = await productModel.updateOne(
+          { code: item.code, quantity: { $gte: qty } },
+          { $inc: { quantity: -qty } },
+          { session },
         );
-        const saleAccount = sanitizeCode(dto.saleAccount || '');
-        if (invoiceTotal > 0 && accountNumber && saleAccount) {
-          await journalVoucherModel.insertMany(
-            [
-              {
-                voucherNumber,
-                date: entryDate,
-                accountNumber,
-                description: `Sale Invoice ${voucherNumber}`,
-                debit: invoiceTotal,
-              },
-              {
-                voucherNumber,
-                date: entryDate,
-                accountNumber: saleAccount,
-                description: `Sale Invoice ${voucherNumber}`,
-                credit: invoiceTotal,
-              },
-            ],
-            { session },
+        if (result.modifiedCount === 0) {
+          throw new BadRequestException(
+            `Insufficient stock or product not found for product code: ${item.code}`,
           );
         }
+      }
+    };
 
-        // ── Step 4: Persist the updated invoice ───────────────────────────────
-        updatedInvoice = (await saleInvoiceModel
-          .findByIdAndUpdate(
-            id,
-            { ...dto, products: normalisedProducts },
-            { new: true, session },
-          )
-          .exec()) as SaleInvoice;
-      });
+    const reverseStockPhaseUpdate = async (session: any) => {
+      for (const item of (oldInvoice.products as any[]) ?? []) {
+        const qty = Number(item.quantity) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: -qty } },
+          { session },
+        );
+      }
+      for (const item of normalisedProducts) {
+        const qty = item.quantity;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: qty } },
+          { session },
+        );
+      }
+    };
+
+    const runBrandPhaseUpdate = async (session: any) => {
+      await journalVoucherModel.deleteMany(
+        { voucherNumber: (oldInvoice as any).invoiceNumber },
+        { session },
+      );
+      if (invoiceTotal > 0 && accountNumber && saleAccount) {
+        await journalVoucherModel.insertMany(
+          [
+            {
+              voucherNumber,
+              date: entryDate,
+              accountNumber,
+              description: `Sale Invoice ${voucherNumber}`,
+              debit: invoiceTotal,
+            },
+            {
+              voucherNumber,
+              date: entryDate,
+              accountNumber: saleAccount,
+              description: `Sale Invoice ${voucherNumber}`,
+              credit: invoiceTotal,
+            },
+          ],
+          { session },
+        );
+      }
+
+      updatedInvoice = (await saleInvoiceModel
+        .findByIdAndUpdate(
+          id,
+          { ...dto, products: normalisedProducts },
+          { new: true, session },
+        )
+        .exec()) as SaleInvoice;
+    };
+
+    try {
+      if (this.inventoryUsesDifferentMongoClient(productModel, conn)) {
+        const invSession = await this.connChemtronics.startSession();
+        try {
+          await invSession.withTransaction(() =>
+            runStockPhaseUpdate(invSession),
+          );
+        } finally {
+          await invSession.endSession();
+        }
+
+        const brandSession = await conn.startSession();
+        try {
+          await brandSession.withTransaction(() =>
+            runBrandPhaseUpdate(brandSession),
+          );
+        } catch (brandErr) {
+          const undo = await this.connChemtronics.startSession();
+          try {
+            await undo.withTransaction(() => reverseStockPhaseUpdate(undo));
+          } finally {
+            await undo.endSession();
+          }
+          throw brandErr;
+        } finally {
+          await brandSession.endSession();
+        }
+      } else {
+        const session = await conn.startSession();
+        try {
+          await session.withTransaction(async () => {
+            await runStockPhaseUpdate(session);
+            await runBrandPhaseUpdate(session);
+          });
+        } finally {
+          await session.endSession();
+        }
+      }
 
       const user = this.req.user as JwtPayload | undefined;
       this.auditLogService.log({
@@ -366,8 +468,6 @@ export class SaleInvoiceService {
       throw new InternalServerErrorException(
         error?.message || 'Failed to update sale invoice',
       );
-    } finally {
-      await session.endSession();
     }
   }
 
@@ -384,30 +484,74 @@ export class SaleInvoiceService {
       throw new BadRequestException(`Sale invoice not found: ${id}`);
     }
 
-    const session = await conn.startSession();
-    try {
-      await session.withTransaction(async () => {
-        // ── Step 1: Delete the invoice ───────────────────────────────────────
-        await saleInvoiceModel.findByIdAndDelete(id, { session });
-
-        // ── Step 2: Restore stock for every product line ─────────────────────
-        for (const item of (invoice.products as any[]) ?? []) {
-          const qty = Number(item.quantity) || 0;
-          if (qty <= 0) continue;
-          await productModel.updateOne(
-            { code: item.code },
-            { $inc: { quantity: qty } },
-            { session },
-          );
-        }
-
-        // ── Step 3: Reverse journal voucher rows by voucherNumber ────────────
-        // Deletes both the DR and CR rows that were created on invoice creation.
-        await journalVoucherModel.deleteMany(
-          { voucherNumber: invoice.invoiceNumber },
+    const runRestoreStock = async (session: any) => {
+      for (const item of (invoice.products as any[]) ?? []) {
+        const qty = Number(item.quantity) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: qty } },
           { session },
         );
-      });
+      }
+    };
+
+    const runDeleteInvoiceAndJournal = async (session: any) => {
+      await saleInvoiceModel.findByIdAndDelete(id, { session });
+      await journalVoucherModel.deleteMany(
+        { voucherNumber: invoice.invoiceNumber },
+        { session },
+      );
+    };
+
+    const reverseRestoreStock = async (session: any) => {
+      for (const item of (invoice.products as any[]) ?? []) {
+        const qty = Number(item.quantity) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: -qty } },
+          { session },
+        );
+      }
+    };
+
+    try {
+      if (this.inventoryUsesDifferentMongoClient(productModel, conn)) {
+        const invSession = await this.connChemtronics.startSession();
+        try {
+          await invSession.withTransaction(() => runRestoreStock(invSession));
+        } finally {
+          await invSession.endSession();
+        }
+
+        const brandSession = await conn.startSession();
+        try {
+          await brandSession.withTransaction(() =>
+            runDeleteInvoiceAndJournal(brandSession),
+          );
+        } catch (delErr) {
+          const undo = await this.connChemtronics.startSession();
+          try {
+            await undo.withTransaction(() => reverseRestoreStock(undo));
+          } finally {
+            await undo.endSession();
+          }
+          throw delErr;
+        } finally {
+          await brandSession.endSession();
+        }
+      } else {
+        const session = await conn.startSession();
+        try {
+          await session.withTransaction(async () => {
+            await runDeleteInvoiceAndJournal(session);
+            await runRestoreStock(session);
+          });
+        } finally {
+          await session.endSession();
+        }
+      }
 
       const user = this.req.user as JwtPayload | undefined;
       this.auditLogService.log({
@@ -426,8 +570,6 @@ export class SaleInvoiceService {
       throw new InternalServerErrorException(
         error?.message || 'Failed to delete sale invoice',
       );
-    } finally {
-      await session.endSession();
     }
   }
 

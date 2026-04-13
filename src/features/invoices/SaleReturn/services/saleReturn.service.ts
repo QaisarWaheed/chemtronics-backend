@@ -70,6 +70,13 @@ export class SaleReturnService {
     return brand === 'hydroworx' ? this.connHydroworx : this.connChemtronics;
   }
 
+  private inventoryUsesDifferentMongoClient(
+    productModel: Model<Products>,
+    brandConn: Connection,
+  ): boolean {
+    return productModel.db.getClient() !== brandConn.getClient();
+  }
+
   async create(createSaleReturnDto: CreateSaleReturnDto) {
     const brand = this.getBrand();
     const productModel = this.getProductModel();
@@ -84,58 +91,94 @@ export class SaleReturnService {
         : []
     ).reduce((sum, p) => sum + (Number(p.netAmount) || 0), 0);
 
-    const session = await conn.startSession();
+    const voucherNumber = `RETURN-${createSaleReturnDto.invoiceNumber}`;
+    const entryDate = createSaleReturnDto.invoiceDate
+      ? new Date(createSaleReturnDto.invoiceDate)
+      : new Date();
+
     let savedReturn!: SaleReturn;
 
-    try {
-      await session.withTransaction(async () => {
-        // ── Step 1: Persist the sale return ─────────────────────────────────
-        const created = new saleReturnModel(createSaleReturnDto);
-        savedReturn = await created.save({ session });
-
-        // ── Step 2: Restore stock for each returned product ──────────────────
-        for (const item of createSaleReturnDto.products) {
-          const qty = Number(item.quantity) || 0;
-          if (qty <= 0) continue;
-          await productModel.updateOne(
-            { code: item.code },
-            { $inc: { quantity: qty } },
-            { session },
-          );
-        }
-
-        // ── Step 3: Reverse double-entry journal voucher ──────────────────────
-        // A sale return reverses the original sale:
-        //   DR Sales Revenue / Sale Returns   (reverses the CR from the original sale)
-        //   CR Accounts Receivable            (reverses the DR from the original sale)
-        // voucherNumber = "RETURN-<invoiceNumber>" to avoid collision with the original.
-        const voucherNumber = `RETURN-${createSaleReturnDto.invoiceNumber}`;
-        const entryDate = createSaleReturnDto.invoiceDate
-          ? new Date(createSaleReturnDto.invoiceDate)
-          : new Date();
-
-        await journalVoucherModel.insertMany(
-          [
-            {
-              // DR Sales Revenue (reduces revenue — the return)
-              voucherNumber,
-              date: entryDate,
-              accountNumber: sanitizeCode(createSaleReturnDto.saleAccount),
-              description: `Sale Return for Invoice ${createSaleReturnDto.invoiceNumber}`,
-              debit: returnTotal,
-            },
-            {
-              // CR Accounts Receivable (customer no longer owes us)
-              voucherNumber,
-              date: entryDate,
-              accountNumber: sanitizeCode(createSaleReturnDto.customer),
-              description: `Sale Return for Invoice ${createSaleReturnDto.invoiceNumber}`,
-              credit: returnTotal,
-            },
-          ],
+    const runRestoreStock = async (session: any) => {
+      for (const item of createSaleReturnDto.products) {
+        const qty = Number(item.quantity) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: qty } },
           { session },
         );
-      });
+      }
+    };
+
+    const runReturnAndJournal = async (session: any) => {
+      const created = new saleReturnModel(createSaleReturnDto);
+      savedReturn = await created.save({ session });
+
+      await journalVoucherModel.insertMany(
+        [
+          {
+            voucherNumber,
+            date: entryDate,
+            accountNumber: sanitizeCode(createSaleReturnDto.saleAccount),
+            description: `Sale Return for Invoice ${createSaleReturnDto.invoiceNumber}`,
+            debit: returnTotal,
+          },
+          {
+            voucherNumber,
+            date: entryDate,
+            accountNumber: sanitizeCode(createSaleReturnDto.customer),
+            description: `Sale Return for Invoice ${createSaleReturnDto.invoiceNumber}`,
+            credit: returnTotal,
+          },
+        ],
+        { session },
+      );
+    };
+
+    try {
+      if (this.inventoryUsesDifferentMongoClient(productModel, conn)) {
+        const brandSession = await conn.startSession();
+        try {
+          await brandSession.withTransaction(() =>
+            runReturnAndJournal(brandSession),
+          );
+        } finally {
+          await brandSession.endSession();
+        }
+
+        const invSession = await this.connChemtronics.startSession();
+        try {
+          await invSession.withTransaction(() => runRestoreStock(invSession));
+        } catch (stockErr) {
+          const rollback = await conn.startSession();
+          try {
+            await rollback.withTransaction(async () => {
+              await saleReturnModel.findByIdAndDelete(savedReturn._id, {
+                session: rollback,
+              });
+              await journalVoucherModel.deleteMany(
+                { voucherNumber },
+                { session: rollback },
+              );
+            });
+          } finally {
+            await rollback.endSession();
+          }
+          throw stockErr;
+        } finally {
+          await invSession.endSession();
+        }
+      } else {
+        const session = await conn.startSession();
+        try {
+          await session.withTransaction(async () => {
+            await runReturnAndJournal(session);
+            await runRestoreStock(session);
+          });
+        } finally {
+          await session.endSession();
+        }
+      }
 
       return savedReturn;
     } catch (error: any) {
@@ -150,8 +193,6 @@ export class SaleReturnService {
       throw new InternalServerErrorException(
         error?.message || 'Failed to create sale return',
       );
-    } finally {
-      await session.endSession();
     }
   }
 
