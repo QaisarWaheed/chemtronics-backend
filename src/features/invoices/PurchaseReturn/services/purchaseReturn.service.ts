@@ -72,6 +72,13 @@ export class PurchaseReturnService {
     return brand === 'hydroworx' ? this.connHydroworx : this.connChemtronics;
   }
 
+  private inventoryUsesDifferentMongoClient(
+    productModel: Model<Products>,
+    brandConn: Connection,
+  ): boolean {
+    return productModel.db.getClient() !== brandConn.getClient();
+  }
+
   async create(createPurchaseReturnDto: CreatePurchaseReturnDto) {
     const brand = this.getBrand();
     const purchaseReturnModel = this.getModel(brand);
@@ -86,63 +93,100 @@ export class PurchaseReturnService {
         : []
     ).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
-    const session = await conn.startSession();
+    const voucherNumber = `PRETURN-${createPurchaseReturnDto.invoiceNumber}`;
+    const entryDate = createPurchaseReturnDto.invoiceDate
+      ? new Date(createPurchaseReturnDto.invoiceDate)
+      : new Date();
+
     let savedReturn!: PurchaseReturn;
 
-    try {
-      await session.withTransaction(async () => {
-        // ── Step 1: Persist the purchase return ──────────────────────────────
-        const created = new purchaseReturnModel(createPurchaseReturnDto);
-        savedReturn = await created.save({ session });
-
-        // ── Step 2: Decrease stock for each returned product ─────────────────
-        // Goods are going back to the supplier — stock falls
-        for (const item of createPurchaseReturnDto.products) {
-          const qty = Number(item.quantity) || 0;
-          if (qty <= 0) continue;
-          await productModel.updateOne(
-            { code: item.code },
-            { $inc: { quantity: -qty } },
-            { session },
-          );
-        }
-
-        // ── Step 3: Reversing double-entry journal voucher ───────────────────
-        //   DR Accounts Payable   (we owe the supplier less now)
-        //   CR Inventory / Stock  (asset decreases — goods left)
-        const voucherNumber = `PRETURN-${createPurchaseReturnDto.invoiceNumber}`;
-        const entryDate = createPurchaseReturnDto.invoiceDate
-          ? new Date(createPurchaseReturnDto.invoiceDate)
-          : new Date();
-
-        await journalVoucherModel.insertMany(
-          [
-            {
-              // DR Accounts Payable (reduces liability — supplier owes us the refund)
-              voucherNumber,
-              date: entryDate,
-              accountNumber: sanitizeCode(
-                createPurchaseReturnDto.supplier?.code ??
-                  createPurchaseReturnDto.supplier?.name ??
-                  '',
-              ),
-              description: `Purchase Return for Invoice ${createPurchaseReturnDto.invoiceNumber}`,
-              debit: returnTotal,
-            },
-            {
-              // CR Inventory (stock asset decreases)
-              voucherNumber,
-              date: entryDate,
-              accountNumber: sanitizeCode(
-                createPurchaseReturnDto.purchaseAccount ?? '',
-              ),
-              description: `Purchase Return for Invoice ${createPurchaseReturnDto.invoiceNumber}`,
-              credit: returnTotal,
-            },
-          ],
+    const runDecreaseStock = async (session: any) => {
+      for (const item of createPurchaseReturnDto.products) {
+        const qty = Number(item.quantity) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: -qty } },
           { session },
         );
-      });
+      }
+    };
+
+    const runReturnAndJournal = async (session: any) => {
+      const created = new purchaseReturnModel(createPurchaseReturnDto);
+      savedReturn = await created.save({ session });
+
+      await journalVoucherModel.insertMany(
+        [
+          {
+            voucherNumber,
+            date: entryDate,
+            accountNumber: sanitizeCode(
+              createPurchaseReturnDto.supplier?.code ??
+                createPurchaseReturnDto.supplier?.name ??
+                '',
+            ),
+            description: `Purchase Return for Invoice ${createPurchaseReturnDto.invoiceNumber}`,
+            debit: returnTotal,
+          },
+          {
+            voucherNumber,
+            date: entryDate,
+            accountNumber: sanitizeCode(
+              createPurchaseReturnDto.purchaseAccount ?? '',
+            ),
+            description: `Purchase Return for Invoice ${createPurchaseReturnDto.invoiceNumber}`,
+            credit: returnTotal,
+          },
+        ],
+        { session },
+      );
+    };
+
+    try {
+      if (this.inventoryUsesDifferentMongoClient(productModel, conn)) {
+        const brandSession = await conn.startSession();
+        try {
+          await brandSession.withTransaction(() =>
+            runReturnAndJournal(brandSession),
+          );
+        } finally {
+          await brandSession.endSession();
+        }
+
+        const invSession = await this.connChemtronics.startSession();
+        try {
+          await invSession.withTransaction(() => runDecreaseStock(invSession));
+        } catch (stockErr) {
+          const rollback = await conn.startSession();
+          try {
+            await rollback.withTransaction(async () => {
+              await purchaseReturnModel.findByIdAndDelete(savedReturn._id, {
+                session: rollback,
+              });
+              await journalVoucherModel.deleteMany(
+                { voucherNumber },
+                { session: rollback },
+              );
+            });
+          } finally {
+            await rollback.endSession();
+          }
+          throw stockErr;
+        } finally {
+          await invSession.endSession();
+        }
+      } else {
+        const session = await conn.startSession();
+        try {
+          await session.withTransaction(async () => {
+            await runReturnAndJournal(session);
+            await runDecreaseStock(session);
+          });
+        } finally {
+          await session.endSession();
+        }
+      }
 
       return savedReturn;
     } catch (error: any) {
@@ -153,8 +197,6 @@ export class PurchaseReturnService {
       throw new InternalServerErrorException(
         error?.message || 'Failed to create purchase return',
       );
-    } finally {
-      await session.endSession();
     }
   }
 

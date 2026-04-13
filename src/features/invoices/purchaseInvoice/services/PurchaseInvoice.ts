@@ -67,6 +67,13 @@ export class PurchaseInvoiceService {
       : this.connChemtronics;
   }
 
+  private inventoryUsesDifferentMongoClient(
+    productModel: Model<Products>,
+    brandConn: Connection,
+  ): boolean {
+    return productModel.db.getClient() !== brandConn.getClient();
+  }
+
   async createPurchaseInvoice(
     data: CreatePurchaseInvoiceDto,
   ): Promise<PurchaseInvoice> {
@@ -75,63 +82,96 @@ export class PurchaseInvoiceService {
     const journalVoucherModel = this.getJournalModel();
     const conn = this.getConnection();
 
-    const session = await conn.startSession();
     let savedInvoice!: PurchaseInvoice;
-    let voucherNumber = '';
+    let voucherNumber = String(
+      data.invoiceNumber || data.partyBillNumber || '',
+    );
+    const entryDate: Date = data.invoiceDate
+      ? new Date(data.invoiceDate)
+      : new Date();
+    const total = Number(data.totalAmount) || 0;
 
-    try {
-      await session.withTransaction(async () => {
-        // ── Step 1: Persist the purchase invoice ────────────────────────────
-        [savedInvoice] = await purchaseInvoiceModel.create([data], { session });
-
-        // ── Step 2: Increase stock for each purchased item ───────────────────
-        for (const item of data.items ?? []) {
-          // Purchase items carry price/unit — treat unit as quantity received
-          const qty = Number(item.unit) || 0;
-          if (qty <= 0) continue;
-          await productModel.updateOne(
-            { code: item.code },
-            { $inc: { quantity: qty } },
-            { session },
-          );
-        }
-
-        // ── Step 3: Double-entry journal voucher ─────────────────────────────
-        //   DR Inventory / Stock   (asset increases)
-        //   CR Accounts Payable    (liability increases — we owe the supplier)
-        // voucherNumber = invoiceNumber (or partyBillNumber as fallback)
-        voucherNumber = String(
-          data.invoiceNumber || data.partyBillNumber || '',
-        );
-        const entryDate: Date = data.invoiceDate
-          ? new Date(data.invoiceDate)
-          : new Date();
-        const total = Number(data.totalAmount) || 0;
-
-        // purchaseAccount holds the inventory/stock GL code;
-        // supplier.code is the payable party code.
-        await journalVoucherModel.insertMany(
-          [
-            {
-              // DR Inventory (stock asset rises)
-              voucherNumber,
-              date: entryDate,
-              accountNumber: sanitizeCode(data.purchaseAccount),
-              description: `Purchase Invoice ${voucherNumber}`,
-              debit: total,
-            },
-            {
-              // CR Accounts Payable (we owe the supplier)
-              voucherNumber,
-              date: entryDate,
-              accountNumber: sanitizeCode(String(data.supplier?.code ?? '')),
-              description: `Purchase Invoice ${voucherNumber}`,
-              credit: total,
-            },
-          ],
+    const runStockIncrements = async (session: any) => {
+      for (const item of data.items ?? []) {
+        const qty = Number(item.unit) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: qty } },
           { session },
         );
-      });
+      }
+    };
+
+    const runInvoiceAndJournal = async (session: any) => {
+      [savedInvoice] = await purchaseInvoiceModel.create([data], { session });
+
+      await journalVoucherModel.insertMany(
+        [
+          {
+            voucherNumber,
+            date: entryDate,
+            accountNumber: sanitizeCode(data.purchaseAccount),
+            description: `Purchase Invoice ${voucherNumber}`,
+            debit: total,
+          },
+          {
+            voucherNumber,
+            date: entryDate,
+            accountNumber: sanitizeCode(String(data.supplier?.code ?? '')),
+            description: `Purchase Invoice ${voucherNumber}`,
+            credit: total,
+          },
+        ],
+        { session },
+      );
+    };
+
+    try {
+      if (this.inventoryUsesDifferentMongoClient(productModel, conn)) {
+        const brandSession = await conn.startSession();
+        try {
+          await brandSession.withTransaction(() =>
+            runInvoiceAndJournal(brandSession),
+          );
+        } finally {
+          await brandSession.endSession();
+        }
+
+        const invSession = await this.connChemtronics.startSession();
+        try {
+          await invSession.withTransaction(() => runStockIncrements(invSession));
+        } catch (stockErr) {
+          const rollback = await conn.startSession();
+          try {
+            await rollback.withTransaction(async () => {
+              await purchaseInvoiceModel.findByIdAndDelete(
+                (savedInvoice as any)._id,
+                { session: rollback },
+              );
+              await journalVoucherModel.deleteMany(
+                { voucherNumber },
+                { session: rollback },
+              );
+            });
+          } finally {
+            await rollback.endSession();
+          }
+          throw stockErr;
+        } finally {
+          await invSession.endSession();
+        }
+      } else {
+        const session = await conn.startSession();
+        try {
+          await session.withTransaction(async () => {
+            await runInvoiceAndJournal(session);
+            await runStockIncrements(session);
+          });
+        } finally {
+          await session.endSession();
+        }
+      }
 
       const user = this.req.user as JwtPayload | undefined;
       this.auditLogService.log({
@@ -159,8 +199,6 @@ export class PurchaseInvoiceService {
       throw new InternalServerErrorException(
         error?.message || 'Failed to create purchase invoice',
       );
-    } finally {
-      await session.endSession();
     }
   }
 
@@ -218,28 +256,73 @@ export class PurchaseInvoiceService {
       (invoice as any).invoiceNumber || (invoice as any).partyBillNumber || '',
     );
 
-    const session = await conn.startSession();
+    const runReverseStock = async (session: any) => {
+      for (const item of (invoice as any).items ?? []) {
+        const qty = Number(item.unit) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: -qty } },
+          { session },
+        );
+      }
+    };
+
+    const runDeleteInvoiceAndJournal = async (session: any) => {
+      await purchaseInvoiceModel.findByIdAndDelete(id, { session });
+      if (voucherNumber) {
+        await journalVoucherModel.deleteMany({ voucherNumber }, { session });
+      }
+    };
+
+    const undoReverseStock = async (session: any) => {
+      for (const item of (invoice as any).items ?? []) {
+        const qty = Number(item.unit) || 0;
+        if (qty <= 0) continue;
+        await productModel.updateOne(
+          { code: item.code },
+          { $inc: { quantity: qty } },
+          { session },
+        );
+      }
+    };
+
     try {
-      await session.withTransaction(async () => {
-        // ── Step 1: Delete the invoice ───────────────────────────────────────
-        await purchaseInvoiceModel.findByIdAndDelete(id, { session });
+      if (this.inventoryUsesDifferentMongoClient(productModel, conn)) {
+        const invSession = await this.connChemtronics.startSession();
+        try {
+          await invSession.withTransaction(() => runReverseStock(invSession));
+        } finally {
+          await invSession.endSession();
+        }
 
-        // ── Step 2: Reverse stock increments (subtract qty back out) ─────────
-        for (const item of (invoice as any).items ?? []) {
-          const qty = Number(item.unit) || 0;
-          if (qty <= 0) continue;
-          await productModel.updateOne(
-            { code: item.code },
-            { $inc: { quantity: -qty } },
-            { session },
+        const brandSession = await conn.startSession();
+        try {
+          await brandSession.withTransaction(() =>
+            runDeleteInvoiceAndJournal(brandSession),
           );
+        } catch (delErr) {
+          const undo = await this.connChemtronics.startSession();
+          try {
+            await undo.withTransaction(() => undoReverseStock(undo));
+          } finally {
+            await undo.endSession();
+          }
+          throw delErr;
+        } finally {
+          await brandSession.endSession();
         }
-
-        // ── Step 3: Delete the journal voucher rows created on save ──────────
-        if (voucherNumber) {
-          await journalVoucherModel.deleteMany({ voucherNumber }, { session });
+      } else {
+        const session = await conn.startSession();
+        try {
+          await session.withTransaction(async () => {
+            await runDeleteInvoiceAndJournal(session);
+            await runReverseStock(session);
+          });
+        } finally {
+          await session.endSession();
         }
-      });
+      }
 
       const user = this.req.user as JwtPayload | undefined;
       this.auditLogService.log({
@@ -261,8 +344,6 @@ export class PurchaseInvoiceService {
       throw new InternalServerErrorException(
         error?.message || 'Failed to delete purchase invoice',
       );
-    } finally {
-      await session.endSession();
     }
   }
 }
