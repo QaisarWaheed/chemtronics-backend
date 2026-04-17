@@ -169,7 +169,9 @@ export class ReportsService {
     }
     const brand = this.getBrand();
     const account = await this.getChartModel(brand)
-      .findOne({ accountCode: code })
+      .findOne({
+        $or: [{ accountCode: code }, { selectedCode: code }],
+      })
       .lean()
       .exec();
     return {
@@ -367,10 +369,30 @@ export class ReportsService {
       credit: number;
     }>([
       { $match: match },
+      // JV accountNumber may be "14126" or "14126 - Name …" — join CoA on numeric code prefix
+      {
+        $addFields: {
+          coaLookupCode: {
+            $trim: {
+              input: {
+                $arrayElemAt: [
+                  {
+                    $split: [
+                      { $trim: { input: { $toString: '$accountNumber' } } },
+                      '-',
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      },
       {
         $lookup: {
           from: chartCollection,
-          localField: 'accountNumber',
+          localField: 'coaLookupCode',
           foreignField: 'accountCode',
           as: 'coaDoc',
         },
@@ -382,7 +404,8 @@ export class ReportsService {
           accountType: '$coaDoc.accountType',
         },
       },
-      { $sort: { date: -1, _id: -1 } },
+      // Chronological order so running balance matches account ledger convention
+      { $sort: { date: 1, _id: 1 } },
       {
         $project: {
           _id: 0,
