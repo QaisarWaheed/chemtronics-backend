@@ -430,8 +430,45 @@ export class ReportsService {
       rows[0]?.accountType,
     );
 
+    // Enrich descriptions with invoice line item details
+    const enrichedRows = await Promise.all(
+      rows.map(async (row) => {
+        let enrichedDescription = row.description || '';
+
+        // Try to find matching sale invoice for product details
+        const invoiceNum = row.voucherNumber;
+        if (invoiceNum && invoiceNum.startsWith('INV-')) {
+          try {
+            const saleInvoice = await this.getSaleModel(brand)
+              .findOne({ invoiceNumber: invoiceNum })
+              .lean()
+              .exec();
+
+            if (saleInvoice && (saleInvoice as any).products && (saleInvoice as any).products.length > 0) {
+              const productDetails = (saleInvoice as any).products
+                .map((p: any) => {
+                  const qty = p.quantity || 0;
+                  const rate = p.rate || 0;
+                  const amount = p.netAmount || 0;
+                  return `${p.productName || 'Product'} - Qty: ${qty}, Rate: Rs.${rate.toFixed(2)}, Amount: Rs.${amount.toFixed(2)}`;
+                })
+                .join('\n');
+              enrichedDescription = productDetails;
+            }
+          } catch (e) {
+            console.log('Could not enrich invoice details for:', invoiceNum);
+          }
+        }
+
+        return {
+          ...row,
+          description: enrichedDescription,
+        };
+      }),
+    );
+
     let runningBalance = 0;
-    return rows.map((row) => {
+    return enrichedRows.map((row) => {
       const debit = row.debit ?? 0;
       const credit = row.credit ?? 0;
       runningBalance += debit - credit;

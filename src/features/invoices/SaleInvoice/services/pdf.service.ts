@@ -395,12 +395,13 @@ export class PdfService {
     const GRID = '#cccccc';
 
     // Column layout (widths sum to CW = 515.28)
-    const dateCol = { x: M, w: 60 };
-    const vchCol = { x: M + 60, w: 72 };
-    const narCol = { x: M + 132, w: 175 };
-    const drCol = { x: M + 307, w: 68 };
-    const crCol = { x: M + 375, w: 68 };
-    const balCol = { x: M + 443, w: CW - 443 }; // 72.28
+    // Optimized for full narration visibility - matching reference design exactly
+    const dateCol = { x: M, w: 48 };
+    const vchCol = { x: M + 48, w: 60 };
+    const narCol = { x: M + 108, w: 230 }; // Wide narration column for all details
+    const drCol = { x: M + 338, w: 55 };
+    const crCol = { x: M + 393, w: 55 };
+    const balCol = { x: M + 448, w: CW - 448 }; // 67.28
 
     const fmt = (n: number) =>
       (n || 0).toLocaleString('en-US', {
@@ -492,10 +493,10 @@ export class PdfService {
     const drawTableHeader = (y: number): number => {
       const rh = 16;
       doc.rect(M, y, CW, rh).fill(NAVY);
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#ffffff');
-      doc.text('Date', dateCol.x + 2, y + 4, { width: dateCol.w - 4 });
-      doc.text('VchNo', vchCol.x + 2, y + 4, { width: vchCol.w - 4 });
-      doc.text('Narration', narCol.x + 2, y + 4, { width: narCol.w - 4 });
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#ffffff');
+      doc.text('Date', dateCol.x + 2, y + 4, { width: dateCol.w - 4, align: 'center' });
+      doc.text('VchNo', vchCol.x + 2, y + 4, { width: vchCol.w - 4, align: 'center' });
+      doc.text('Narration', narCol.x + 2, y + 4, { width: narCol.w - 4, align: 'left' });
       doc.text('Debit', drCol.x + 2, y + 4, {
         width: drCol.w - 4,
         align: 'right',
@@ -528,9 +529,12 @@ export class PdfService {
       totCr += cr;
 
       const narration = tx.description || '';
-      doc.font('Helvetica').fontSize(8);
-      const narH = doc.heightOfString(narration, { width: narCol.w - 4 });
-      const rh = Math.max(16, narH + 8);
+      doc.font('Helvetica').fontSize(7.5);
+      
+      // Calculate proper height for narration with padding
+      const narH = doc.heightOfString(narration, { width: narCol.w - 6 });
+      const minRowHeight = 15;
+      const rh = Math.max(minRowHeight, narH + 6); // Compact padding
 
       if (y + rh > PAGE_BOTTOM) {
         doc.addPage();
@@ -551,25 +555,48 @@ export class PdfService {
         ? new Date(tx.date).toLocaleDateString('en-GB')
         : '';
 
-      doc.font('Helvetica').fontSize(8).fillColor(BLACK);
-      doc.text(dateStr, dateCol.x + 2, y + 4, { width: dateCol.w - 4 });
-      doc.text(tx.voucherNumber || '', vchCol.x + 2, y + 4, {
-        width: vchCol.w - 4,
+      doc.font('Helvetica').fontSize(7.5).fillColor(BLACK);
+      
+      // Align all content to top of row
+      const contentY = y + 2;
+      
+      doc.text(dateStr, dateCol.x + 2, contentY, { 
+        width: dateCol.w - 4,
+        align: 'center',
+        lineBreak: false
       });
-      doc.text(narration, narCol.x + 2, y + 4, { width: narCol.w - 4 });
+      
+      doc.text(tx.voucherNumber || '', vchCol.x + 2, contentY, {
+        width: vchCol.w - 4,
+        align: 'center',
+        lineBreak: false
+      });
+      
+      // Narration - show full text with wrapping
+      doc.text(narration, narCol.x + 2, contentY, { 
+        width: narCol.w - 6,
+        align: 'left'
+      });
+      
+      // Right-aligned financial columns - vertically centered in row
+      const centerY = y + (rh - 7) / 2;
       if (dr > 0)
-        doc.text(fmt(dr), drCol.x + 2, y + 4, {
+        doc.text(fmt(dr), drCol.x + 2, centerY, {
           width: drCol.w - 4,
           align: 'right',
+          lineBreak: false
         });
       if (cr > 0)
-        doc.text(fmt(cr), crCol.x + 2, y + 4, {
+        doc.text(fmt(cr), crCol.x + 2, centerY, {
           width: crCol.w - 4,
           align: 'right',
+          lineBreak: false
         });
-      doc.text(balLabel, balCol.x + 2, y + 4, {
+      
+      doc.text(balLabel, balCol.x + 2, centerY, {
         width: balCol.w - 4,
         align: 'right',
+        lineBreak: false
       });
 
       y += rh;
@@ -577,26 +604,38 @@ export class PdfService {
     }
 
     // Grand Total row
-    if (y + 20 > PAGE_BOTTOM) {
+    if (y + 18 > PAGE_BOTTOM) {
       doc.addPage();
       y = M;
+      y = drawDocHeader(y);
+      y = drawTableHeader(y);
     }
     const grandBal = `${fmt(Math.abs(runBal))} ${runBal >= 0 ? 'Dr' : 'Cr'}`;
-    doc.rect(M, y, CW, 20).fill(NAVY);
-    doc.font('Helvetica-Bold').fontSize(8).fillColor('#ffffff');
+    const totalRowHeight = 18;
+    doc.rect(M, y, CW, totalRowHeight).fill(NAVY);
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#ffffff');
+    
     // Label spans date + vch + narration columns
-    doc.text('Grand Total', M + 2, y + 6, { width: 303 });
-    doc.text(fmt(totDr), drCol.x + 2, y + 6, {
+    doc.text('Grand Total', M + 2, y + 4, { 
+      width: narCol.x + narCol.w - M - 4,
+      align: 'left',
+      lineBreak: false
+    });
+    
+    doc.text(fmt(totDr), drCol.x + 2, y + 4, {
       width: drCol.w - 4,
       align: 'right',
+      lineBreak: false
     });
-    doc.text(fmt(totCr), crCol.x + 2, y + 6, {
+    doc.text(fmt(totCr), crCol.x + 2, y + 4, {
       width: crCol.w - 4,
       align: 'right',
+      lineBreak: false
     });
-    doc.text(grandBal, balCol.x + 2, y + 6, {
+    doc.text(grandBal, balCol.x + 2, y + 4, {
       width: balCol.w - 4,
       align: 'right',
+      lineBreak: false
     });
 
     doc.end();
