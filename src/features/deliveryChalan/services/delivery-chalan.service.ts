@@ -132,7 +132,7 @@ export class DeliveryChalanService {
 
   async findAll(): Promise<DeliveryChalan[]> {
     const deliveryChalanModel = this.getModel();
-    return deliveryChalanModel.find();
+    return deliveryChalanModel.find().sort({ createdAt: -1 }).exec();
   }
 
   async search(term?: string, status?: string): Promise<DeliveryChalan[]> {
@@ -153,7 +153,7 @@ export class DeliveryChalanService {
       query.status = status;
     }
 
-    return deliveryChalanModel.find(query);
+    return deliveryChalanModel.find(query).sort({ createdAt: -1 }).exec();
   }
 
   async searchPartyByName(partyName: string): Promise<DeliveryChalan[]> {

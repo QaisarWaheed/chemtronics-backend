@@ -1,13 +1,17 @@
 /* eslint-disable prettier/prettier */
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional } from 'class-validator';
+import { IsNumber, IsOptional, Min } from 'class-validator';
 
 export class UpdateOpeningBalanceDto {
   @ApiProperty({ required: false })
   @IsOptional()
-  credit: number;
+  @IsNumber()
+  @Min(0)
+  debit?: number;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  debit: number;
+  @IsNumber()
+  @Min(0)
+  credit?: number;
 }

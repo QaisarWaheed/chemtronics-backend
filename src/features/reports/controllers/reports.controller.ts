@@ -45,6 +45,18 @@ export class ReportsController {
     return this.reportsService.getAccountsReceivable();
   }
 
+  @Get('pending-receivable-invoices')
+  async getPendingReceivableInvoices(
+    @Query('accountNumber') accountNumber?: string,
+  ) {
+    if (!accountNumber?.trim()) {
+      throw new BadRequestException('accountNumber query parameter is required');
+    }
+    return this.reportsService.getPendingReceivableInvoices(
+      accountNumber.trim(),
+    );
+  }
+
   @Get('accounts-payable')
   async getAccountsPayable() {
     return this.reportsService.getAccountsPayable();
@@ -56,9 +68,18 @@ export class ReportsController {
     @Res() res: Response,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('includeOpeningBalance') includeOpeningBalance?: string,
+    @Query('openingScope') openingScope?: string,
   ) {
+    const includeOb = includeOpeningBalance === 'true';
     const [transactions, accountInfo] = await Promise.all([
-      this.reportsService.getGeneralLedger(accountNumber, startDate, endDate),
+      this.reportsService.getGeneralLedger(
+        accountNumber,
+        startDate,
+        endDate,
+        includeOb,
+        openingScope,
+      ),
       this.reportsService.getAccountInfo(accountNumber),
     ]);
 
@@ -81,11 +102,16 @@ export class ReportsController {
     @Param('accountNumber') accountNumber: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('includeOpeningBalance') includeOpeningBalance?: string,
+    @Query('openingScope') openingScope?: string,
   ) {
+    const includeOb = includeOpeningBalance === 'true';
     return this.reportsService.getGeneralLedger(
       accountNumber,
       startDate,
       endDate,
+      includeOb,
+      openingScope,
     );
   }
 
