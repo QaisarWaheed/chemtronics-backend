@@ -62,14 +62,14 @@ export class ChartOfAccountController {
   @Put('/openingBalance/:id')
   async partialUpdate(
     @Param('id') id: string,
-    @Body() updateOpeningBalanceDto: Partial<UpdateOpeningBalanceDto>,
+    @Body() updateOpeningBalanceDto: UpdateOpeningBalanceDto,
   ) {
-    console.log(updateOpeningBalanceDto);
-
+    const debit = Number(updateOpeningBalanceDto?.debit ?? 0);
+    const credit = Number(updateOpeningBalanceDto?.credit ?? 0);
     await this.chartOfAccountService.updateOpeningBalance(
       id,
-      updateOpeningBalanceDto.credit || 0,
-      updateOpeningBalanceDto.debit || 0,
+      Number.isFinite(debit) ? debit : 0,
+      Number.isFinite(credit) ? credit : 0,
     );
   }
 

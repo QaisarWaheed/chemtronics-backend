@@ -156,6 +156,7 @@ export class SaleInvoiceService {
       const created = new saleInvoiceModel(payload);
       savedInvoice = await created.save({ session });
 
+      // General ledger: post receivable debit only (revenue credit is handled separately via journal / manual GL).
       await journalVoucherModel.insertMany(
         [
           {
@@ -164,13 +165,6 @@ export class SaleInvoiceService {
             accountNumber: sanitizeCode(payload.accountNumber),
             description: `Sale Invoice ${voucherNumber}`,
             debit: invoiceTotal,
-          },
-          {
-            voucherNumber,
-            date: entryDate,
-            accountNumber: sanitizeCode(payload.saleAccount),
-            description: `Sale Invoice ${voucherNumber}`,
-            credit: invoiceTotal,
           },
         ],
         { session },
@@ -251,7 +245,7 @@ export class SaleInvoiceService {
   async findAll() {
     const brand = this.getBrand();
     const saleInvoiceModel = this.getModel(brand);
-    return saleInvoiceModel.find().exec();
+    return saleInvoiceModel.find().sort({ createdAt: -1 }).exec();
   }
 
   async search(searchTerm?: string) {
@@ -268,7 +262,7 @@ export class SaleInvoiceService {
       ];
     }
 
-    return saleInvoiceModel.find(query).exec();
+    return saleInvoiceModel.find(query).sort({ createdAt: -1 }).exec();
   }
 
   async findOne(id: string) {
@@ -324,7 +318,6 @@ export class SaleInvoiceService {
     const accountNumber = sanitizeCode(
       dto.accountNumber || dto.account || '',
     );
-    const saleAccount = sanitizeCode(dto.saleAccount || '');
 
     let updatedInvoice!: SaleInvoice;
 
@@ -381,7 +374,7 @@ export class SaleInvoiceService {
         { voucherNumber: (oldInvoice as any).invoiceNumber },
         { session },
       );
-      if (invoiceTotal > 0 && accountNumber && saleAccount) {
+      if (invoiceTotal > 0 && accountNumber) {
         await journalVoucherModel.insertMany(
           [
             {
@@ -390,13 +383,6 @@ export class SaleInvoiceService {
               accountNumber,
               description: `Sale Invoice ${voucherNumber}`,
               debit: invoiceTotal,
-            },
-            {
-              voucherNumber,
-              date: entryDate,
-              accountNumber: saleAccount,
-              description: `Sale Invoice ${voucherNumber}`,
-              credit: invoiceTotal,
             },
           ],
           { session },

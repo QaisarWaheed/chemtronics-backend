@@ -1,4 +1,8 @@
 import { Injectable, Inject, Scope } from '@nestjs/common';
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { REQUEST } from '@nestjs/core';
@@ -105,12 +109,14 @@ export interface TrialBalanceRow {
 export interface ARCustomer {
   accountNumber: string;
   accountName: string;
-  /** Total outstanding: totalDebit − totalCredit */
-  outstanding: number;
-  current: number;
-  days31to60: number;
-  days61to90: number;
-  days90plus: number;
+  /** Opening balances from Chart of Accounts (party 14xx). */
+  openingDebit: number;
+  openingCredit: number;
+  /** Gross debits / credits on journal lines aged ≤30 days (same window as former “Current”). */
+  currentDebit: number;
+  currentCredit: number;
+  /** Net receivable: total journal debit − total journal credit for this account. */
+  closingBalance: number;
 }
 
 export interface APVendor {
@@ -122,6 +128,14 @@ export interface APVendor {
   days31to60: number;
   days61to90: number;
   days90plus: number;
+}
+
+/** Open sale invoices for a receivable (14xx) party account — for journal voucher allocation. */
+export interface PendingReceivableInvoiceRow {
+  invoiceNumber: string;
+  invoiceDate: string;
+  accountTitle: string;
+  totalAmount: number;
 }
 
 @Injectable({ scope: Scope.REQUEST })
@@ -158,6 +172,22 @@ export class ReportsService {
     return brand === 'hydroworx'
       ? this.chartModelHydroworx
       : this.chartModelChemtronics;
+  }
+
+  /** Net opening from chart-of-accounts master (debit − credit). */
+  private chartAccountOpeningNet(
+    coaDoc: Record<string, unknown> | null | undefined,
+  ): number {
+    if (!coaDoc) return 0;
+    const d =
+      Number(
+        (coaDoc as any).debit ?? (coaDoc as any).openingBalance?.debit ?? 0,
+      ) || 0;
+    const c =
+      Number(
+        (coaDoc as any).credit ?? (coaDoc as any).openingBalance?.credit ?? 0,
+      ) || 0;
+    return d - c;
   }
 
   async getAccountInfo(
@@ -325,20 +355,34 @@ export class ReportsService {
     accountNumber: string,
     startDate?: string,
     endDate?: string,
+    includeOpeningBalance = false,
+    openingScope?: string,
   ): Promise<GLEntry[]> {
     // Sanitize: strip combined labels (e.g. '14101-Cash' → '14101')
     const code = accountNumber.split('-')[0].trim();
     const isGlobal = !code || code.toLowerCase() === 'all';
     const brand = this.getBrand();
+    const scopeCodes =
+      isGlobal && openingScope?.trim()
+        ? openingScope
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
     console.log('GL Search Query:', {
       accountNumber: isGlobal ? 'ALL' : code,
       brand,
+      includeOpeningBalance,
+      openingScope: scopeCodes.length ? scopeCodes.join(',') : undefined,
     });
 
     const dateFilter: Record<string, Date> = {};
+    let periodStart: Date | null = null;
     if (startDate) {
       const d = new Date(startDate);
       d.setHours(0, 0, 0, 0);
+      periodStart = d;
       dateFilter['$gte'] = d;
     }
     if (endDate) {
@@ -467,8 +511,138 @@ export class ReportsService {
       }),
     );
 
+    let rowsWithOpening = enrichedRows as typeof enrichedRows;
+    if (includeOpeningBalance) {
+      let openingAnchor: Date | null = periodStart;
+      if (!openingAnchor && enrichedRows.length > 0) {
+        const fd = new Date(enrichedRows[0].date as Date);
+        fd.setHours(0, 0, 0, 0);
+        openingAnchor = fd;
+      }
+
+      if (openingAnchor) {
+        const priorMatch: Record<string, unknown> = {
+          date: { $lt: openingAnchor },
+        };
+        if (!isGlobal) {
+          priorMatch['accountNumber'] = {
+            $regex: '^' + escapeRegex(code),
+            $options: 'i',
+          };
+        } else if (scopeCodes.length > 0) {
+          priorMatch['$or'] = scopeCodes.map((c) => ({
+            accountNumber: {
+              $regex: '^' + escapeRegex(c),
+              $options: 'i',
+            },
+          }));
+        }
+        const priorAgg = await this.getModel(brand).aggregate<{
+          debit: number;
+          credit: number;
+        }>([
+          { $match: priorMatch },
+          {
+            $group: {
+              _id: null,
+              debit: { $sum: { $ifNull: ['$debit', 0] } },
+              credit: { $sum: { $ifNull: ['$credit', 0] } },
+            },
+          },
+        ]);
+        const journalOpeningNet =
+          (priorAgg[0]?.debit ?? 0) - (priorAgg[0]?.credit ?? 0);
+
+        let chartOpeningNet = 0;
+        let openingName = 'All accounts';
+        let openingType: string | undefined;
+        let openingAccountNumber = 'ALL';
+
+        if (!isGlobal) {
+          const coa = await this.getChartModel(brand)
+            .findOne({
+              $or: [{ accountCode: code }, { selectedCode: code }],
+            })
+            .lean()
+            .exec();
+          chartOpeningNet = this.chartAccountOpeningNet(coa as any);
+          openingName = (coa as any)?.accountName || code;
+          openingType = (coa as any)?.accountType;
+          openingAccountNumber = code;
+        } else if (scopeCodes.length > 0) {
+          const names: string[] = [];
+          for (const c of scopeCodes) {
+            const coa = await this.getChartModel(brand)
+              .findOne({
+                $or: [{ accountCode: c }, { selectedCode: c }],
+              })
+              .lean()
+              .exec();
+            chartOpeningNet += this.chartAccountOpeningNet(coa as any);
+            const nm = (coa as any)?.accountName?.trim();
+            if (nm) names.push(nm);
+          }
+          openingAccountNumber = scopeCodes.join(',');
+          openingName =
+            names.length === 1
+              ? names[0]!
+              : names.length > 1
+                ? `${names.length} accounts (${scopeCodes.join(', ')})`
+                : scopeCodes.join(', ');
+          openingType = undefined;
+        } else {
+          // Include party / receivable lines and any row with stored opening amounts.
+          // (Summing only `type: 'Detail'` missed many real accounts and showed 0 B/F.)
+          const coaRows = await this.getChartModel(brand)
+            .find({
+              $or: [
+                { debit: { $gt: 0 } },
+                { credit: { $gt: 0 } },
+                { 'openingBalance.debit': { $gt: 0 } },
+                { 'openingBalance.credit': { $gt: 0 } },
+                { type: { $in: ['Detail', 'detail'] } },
+                { isParty: true },
+              ],
+            })
+            .lean()
+            .exec();
+          for (const doc of coaRows as any[]) {
+            chartOpeningNet += this.chartAccountOpeningNet(doc);
+          }
+        }
+
+        const openingNet = journalOpeningNet + chartOpeningNet;
+
+        const drOb = openingNet > 0 ? openingNet : 0;
+        const crOb = openingNet < 0 ? -openingNet : 0;
+        const usedExplicitFrom = !!periodStart;
+        const scopedGlobal = isGlobal && scopeCodes.length > 0;
+        const openingRow = {
+          date: new Date(openingAnchor),
+          voucherNumber: '—',
+          accountNumber: openingAccountNumber,
+          accountName: openingName,
+          accountType: openingType,
+          description: !isGlobal
+            ? usedExplicitFrom
+              ? 'Opening balance (brought forward)'
+              : 'Opening balance — before first listed day (brought forward)'
+            : scopedGlobal
+              ? usedExplicitFrom
+                ? `Opening balance — ${openingName} — before period (brought forward)`
+                : `Opening balance — ${openingName} — before first listed day (brought forward)`
+              : usedExplicitFrom
+                ? 'Opening balance — all entries before period (brought forward)'
+                : 'Opening balance — all entries before first listed day (brought forward)',
+          debit: drOb,
+          credit: crOb,
+        };
+        rowsWithOpening = [openingRow, ...enrichedRows];
+      }
+    }
+
     let runningBalance = 0;
-    return enrichedRows.map((row) => {
+    return rowsWithOpening.map((row) => {
       const debit = row.debit ?? 0;
       const credit = row.credit ?? 0;
       runningBalance += debit - credit;
@@ -633,7 +807,7 @@ export class ReportsService {
         },
       },
 
-      // 3. Aging bucket + net debit/credit contribution per entry
+      // 3. Aging bucket (used only for “current” ≤30d gross debit/credit)
       {
         $addFields: {
           bucket: {
@@ -646,32 +820,32 @@ export class ReportsService {
               default: 'd90plus',
             },
           },
-          netEntry: {
-            $subtract: [
-              { $ifNull: ['$debit', 0] },
-              { $ifNull: ['$credit', 0] },
-            ],
-          },
         },
       },
 
-      // 4. Group by account, accumulate totals and per-bucket sums
+      // 4. Group by account: lifetime totals + current-window (≤30d) gross debit/credit
       {
         $group: {
           _id: '$accountNumber',
           totalDebit: { $sum: { $ifNull: ['$debit', 0] } },
           totalCredit: { $sum: { $ifNull: ['$credit', 0] } },
-          current: {
-            $sum: { $cond: [{ $eq: ['$bucket', 'current'] }, '$netEntry', 0] },
+          currentDebit: {
+            $sum: {
+              $cond: [
+                { $eq: ['$bucket', 'current'] },
+                { $ifNull: ['$debit', 0] },
+                0,
+              ],
+            },
           },
-          d3160: {
-            $sum: { $cond: [{ $eq: ['$bucket', 'd3160'] }, '$netEntry', 0] },
-          },
-          d6190: {
-            $sum: { $cond: [{ $eq: ['$bucket', 'd6190'] }, '$netEntry', 0] },
-          },
-          d90plus: {
-            $sum: { $cond: [{ $eq: ['$bucket', 'd90plus'] }, '$netEntry', 0] },
+          currentCredit: {
+            $sum: {
+              $cond: [
+                { $eq: ['$bucket', 'current'] },
+                { $ifNull: ['$credit', 0] },
+                0,
+              ],
+            },
           },
         },
       },
@@ -687,24 +861,65 @@ export class ReportsService {
       },
       { $unwind: { path: '$coaDoc', preserveNullAndEmptyArrays: true } },
 
-      // 6. Final projection
+      // 6. Final projection (opening from CoA; closing = net receivable on JVs)
       {
         $project: {
           _id: 0,
           accountNumber: '$_id',
           accountName: { $ifNull: ['$coaDoc.accountName', '$_id'] },
-          outstanding: { $subtract: ['$totalDebit', '$totalCredit'] },
-          current: 1,
-          days31to60: '$d3160',
-          days61to90: '$d6190',
-          days90plus: '$d90plus',
+          openingDebit: { $ifNull: ['$coaDoc.debit', 0] },
+          openingCredit: { $ifNull: ['$coaDoc.credit', 0] },
+          currentDebit: 1,
+          currentCredit: 1,
+          closingBalance: {
+            $subtract: ['$totalDebit', '$totalCredit'],
+          },
         },
       },
 
-      // 7. Only accounts with a positive outstanding balance
-      { $match: { outstanding: { $gt: 0 } } },
-      { $sort: { outstanding: -1 } },
+      // 7. Only accounts with a positive closing (net) receivable
+      { $match: { closingBalance: { $gt: 0 } } },
+      { $sort: { closingBalance: -1 } },
     ]);
+  }
+
+  /**
+   * Sale invoices posted to this receivable account (14xx), newest first.
+   * Used when recording cash/bank receipts in journal vouchers against open customer balances.
+   */
+  async getPendingReceivableInvoices(
+    accountNumber: string,
+  ): Promise<PendingReceivableInvoiceRow[]> {
+    const code = accountNumber.split('-')[0].trim();
+    if (!code || !/^14/i.test(code)) {
+      return [];
+    }
+    const brand = this.getBrand();
+    const saleModel = this.getSaleModel(brand);
+    const rx = new RegExp(`^${escapeRegex(code)}(?:\\s|$|-)`, 'i');
+    const invoices = await saleModel
+      .find({ accountNumber: rx })
+      .sort({ invoiceDate: -1 })
+      .lean()
+      .exec();
+
+    return (invoices as any[]).map((inv) => {
+      const products = Array.isArray(inv.products) ? inv.products : [];
+      const totalAmount = products.reduce(
+        (s: number, p: { netAmount?: number }) =>
+          s + (Number(p?.netAmount) || 0),
+        0,
+      );
+      const d = inv.invoiceDate ? new Date(inv.invoiceDate) : new Date();
+      return {
+        invoiceNumber: String(inv.invoiceNumber ?? ''),
+        invoiceDate: Number.isNaN(d.getTime())
+          ? ''
+          : d.toISOString().slice(0, 10),
+        accountTitle: String(inv.accountTitle ?? ''),
+        totalAmount,
+      };
+    });
   }
 
   async getAccountsPayable(): Promise<APVendor[]> {
