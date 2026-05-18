@@ -18,7 +18,9 @@ export interface Supplier {
 export class PurchaseInvoice {
   @Prop()
   gst?: number;
-  declare invoiceNumber: mongoose.Types.ObjectId;
+
+  @Prop({ required: true })
+  invoiceNumber: string;
 
   @Prop()
   customerName?: string;

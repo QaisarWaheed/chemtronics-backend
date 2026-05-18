@@ -122,12 +122,14 @@ export interface ARCustomer {
 export interface APVendor {
   accountNumber: string;
   accountName: string;
-  /** Total outstanding: totalCredit − totalDebit (credit-normal) */
-  outstanding: number;
-  current: number;
-  days31to60: number;
-  days61to90: number;
-  days90plus: number;
+  /** Opening balances from Chart of Accounts (payable / liability 2xxx). */
+  openingDebit: number;
+  openingCredit: number;
+  /** Gross debits / credits on journal lines aged ≤30 days. */
+  currentDebit: number;
+  currentCredit: number;
+  /** Net payable (amount owed): total journal credit − total journal debit. */
+  closingBalance: number;
 }
 
 /** Open sale invoices for a receivable (14xx) party account — for journal voucher allocation. */
@@ -928,10 +930,8 @@ export class ReportsService {
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
     return this.getModel(brand).aggregate<APVendor>([
-      // 1. Only Accounts Payable entries (account codes starting with '2' — Liabilities)
       { $match: { accountNumber: { $regex: '^2', $options: 'i' } } },
 
-      // 2. Days elapsed since each JV entry date
       {
         $addFields: {
           daysSince: {
@@ -940,7 +940,6 @@ export class ReportsService {
         },
       },
 
-      // 3. Aging bucket + net entry (credit − debit for credit-normal payables)
       {
         $addFields: {
           bucket: {
@@ -953,37 +952,35 @@ export class ReportsService {
               default: 'd90plus',
             },
           },
-          netEntry: {
-            $subtract: [
-              { $ifNull: ['$credit', 0] },
-              { $ifNull: ['$debit', 0] },
-            ],
-          },
         },
       },
 
-      // 4. Group by account, accumulate totals and per-bucket sums
       {
         $group: {
           _id: '$accountNumber',
           totalDebit: { $sum: { $ifNull: ['$debit', 0] } },
           totalCredit: { $sum: { $ifNull: ['$credit', 0] } },
-          current: {
-            $sum: { $cond: [{ $eq: ['$bucket', 'current'] }, '$netEntry', 0] },
+          currentDebit: {
+            $sum: {
+              $cond: [
+                { $eq: ['$bucket', 'current'] },
+                { $ifNull: ['$debit', 0] },
+                0,
+              ],
+            },
           },
-          d3160: {
-            $sum: { $cond: [{ $eq: ['$bucket', 'd3160'] }, '$netEntry', 0] },
-          },
-          d6190: {
-            $sum: { $cond: [{ $eq: ['$bucket', 'd6190'] }, '$netEntry', 0] },
-          },
-          d90plus: {
-            $sum: { $cond: [{ $eq: ['$bucket', 'd90plus'] }, '$netEntry', 0] },
+          currentCredit: {
+            $sum: {
+              $cond: [
+                { $eq: ['$bucket', 'current'] },
+                { $ifNull: ['$credit', 0] },
+                0,
+              ],
+            },
           },
         },
       },
 
-      // 5. Join CoA for human-readable account name
       {
         $lookup: {
           from: chartCollection,
@@ -994,23 +991,23 @@ export class ReportsService {
       },
       { $unwind: { path: '$coaDoc', preserveNullAndEmptyArrays: true } },
 
-      // 6. Final projection (outstanding = credit − debit for payables)
       {
         $project: {
           _id: 0,
           accountNumber: '$_id',
           accountName: { $ifNull: ['$coaDoc.accountName', '$_id'] },
-          outstanding: { $subtract: ['$totalCredit', '$totalDebit'] },
-          current: 1,
-          days31to60: '$d3160',
-          days61to90: '$d6190',
-          days90plus: '$d90plus',
+          openingDebit: { $ifNull: ['$coaDoc.debit', 0] },
+          openingCredit: { $ifNull: ['$coaDoc.credit', 0] },
+          currentDebit: 1,
+          currentCredit: 1,
+          closingBalance: {
+            $subtract: ['$totalCredit', '$totalDebit'],
+          },
         },
       },
 
-      // 7. Only accounts with a positive outstanding balance
-      { $match: { outstanding: { $gt: 0 } } },
-      { $sort: { outstanding: -1 } },
+      { $match: { closingBalance: { $gt: 0 } } },
+      { $sort: { closingBalance: -1 } },
     ]);
   }
 

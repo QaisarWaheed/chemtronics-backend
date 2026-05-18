@@ -48,10 +48,10 @@ export class SupplierDto {
 //use reference of purchase invoice entity
 
 export class CreatePurchaseInvoiceDto {
-  @ApiProperty()
+  @ApiProperty({ required: false, description: 'Auto-generated as PUR-### if omitted' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Invoice number is required' })
-  invoiceNumber!: string;
+  invoiceNumber?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

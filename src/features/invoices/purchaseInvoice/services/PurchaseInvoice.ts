@@ -74,6 +74,23 @@ export class PurchaseInvoiceService {
     return productModel.db.getClient() !== brandConn.getClient();
   }
 
+  /** Next PUR-### from the latest stored purchase invoice for this brand. */
+  private async generateNextPurchaseInvoiceNumber(): Promise<string> {
+    const model = this.getModel();
+    const latest = await model
+      .findOne({ invoiceNumber: { $exists: true, $nin: [null, ''] } })
+      .sort({ createdAt: -1 })
+      .select('invoiceNumber')
+      .lean()
+      .exec();
+    let nextNum = 1;
+    if (latest?.invoiceNumber) {
+      const m = String(latest.invoiceNumber).match(/(\d+)$/);
+      if (m) nextNum = parseInt(m[1], 10) + 1;
+    }
+    return `PUR-${String(nextNum).padStart(3, '0')}`;
+  }
+
   async createPurchaseInvoice(
     data: CreatePurchaseInvoiceDto,
   ): Promise<PurchaseInvoice> {
@@ -82,10 +99,13 @@ export class PurchaseInvoiceService {
     const journalVoucherModel = this.getJournalModel();
     const conn = this.getConnection();
 
+    const invoiceNumber =
+      data.invoiceNumber?.trim() ||
+      (await this.generateNextPurchaseInvoiceNumber());
+    const createPayload = { ...data, invoiceNumber };
+
     let savedInvoice!: PurchaseInvoice;
-    let voucherNumber = String(
-      data.invoiceNumber || data.partyBillNumber || '',
-    );
+    let voucherNumber = invoiceNumber;
     const entryDate: Date = data.invoiceDate
       ? new Date(data.invoiceDate)
       : new Date();
@@ -104,7 +124,9 @@ export class PurchaseInvoiceService {
     };
 
     const runInvoiceAndJournal = async (session: any) => {
-      [savedInvoice] = await purchaseInvoiceModel.create([data], { session });
+      [savedInvoice] = await purchaseInvoiceModel.create([createPayload], {
+        session,
+      });
 
       await journalVoucherModel.insertMany(
         [
