@@ -377,6 +377,7 @@ export class PdfService {
     transactions: LedgerRow[],
     accountInfo: { accountNumber: string; accountName: string },
     dateRange: { startDate?: string; endDate?: string },
+    brand = 'chemtronics',
   ): PDFDoc {
     const doc = new PDFDocument({
       size: 'A4',
@@ -393,6 +394,20 @@ export class PdfService {
     const BLACK = '#222222';
     const ALT_BG = '#f5f5f5';
     const GRID = '#cccccc';
+
+    const companyProfile =
+      brand === 'hydroworx'
+        ? {
+            name: 'Hydro Worx',
+            address: 'Bahawalpur Bypass Road, Multan',
+            phone: '061-6761611',
+          }
+        : {
+            name: 'Chemtronix Engineering Solution',
+            address:
+              '552 Mujtaba Canal View, Main Qasimpur Canal Road, Multan',
+            phone: '061-6781611',
+          };
 
     // Column layout (widths sum to CW = 515.28)
     // Optimized for full narration visibility - matching reference design exactly
@@ -411,37 +426,51 @@ export class PdfService {
 
     const PAGE_BOTTOM = 800;
 
+    const formatRangeSlash = (iso?: string) => {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    };
+
+    const formatLedgerRowDate = (iso: Date | string) => {
+      const d = new Date(iso);
+      const day = String(d.getDate()).padStart(2, '0');
+      const mon = d.toLocaleString('en-GB', { month: 'short' });
+      return `${day}-${mon}-${d.getFullYear()}`;
+    };
+
+    const formatPrintTimestamp = () => {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      let hours = now.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const secs = String(now.getSeconds()).padStart(2, '0');
+      return `${dd}/${mm}/${yyyy} ${hours}:${mins}:${secs}${ampm}`;
+    };
+
+    const fmtDrCr = (amount: number, side: 'Dr' | 'Cr') =>
+      amount > 0 ? `${fmt(amount)} ${side}` : '';
+
     const drawDocHeader = (y: number): number => {
-      // Company name – Red, bold
       doc
         .font('Helvetica-Bold')
         .fontSize(16)
         .fillColor(RED)
-        .text('CHEMTRONIX ENGINEERING SOLUTION', M, y);
-      y += 20;
-      doc
-        .font('Helvetica')
-        .fontSize(9)
-        .fillColor(BLACK)
-        .text('552 Mujtaba Canal View, Main Qasimpur Canal Road, Multan', M, y);
-      y += 12;
-      doc
-        .font('Helvetica')
-        .fontSize(9)
-        .fillColor(BLACK)
-        .text('Industrial Chemicals & Equipment Suppliers', M, y);
+        .text(companyProfile.name, M, y, { align: 'center', width: CW });
       y += 18;
+      doc.font('Helvetica').fontSize(9).fillColor(BLACK);
+      doc.text(companyProfile.address, M, y, { align: 'center', width: CW });
+      y += 12;
+      doc.text(companyProfile.phone, M, y, { align: 'center', width: CW });
+      y += 16;
 
-      // Separator rule
-      doc
-        .moveTo(M, y)
-        .lineTo(W - M, y)
-        .strokeColor(NAVY)
-        .lineWidth(1.5)
-        .stroke();
-      y += 8;
-
-      // Title – Navy Blue, centered
       doc
         .font('Helvetica-Bold')
         .fontSize(14)
@@ -449,45 +478,42 @@ export class PdfService {
         .text('Account Ledger Report', M, y, { align: 'center', width: CW });
       const titleWidth = doc.widthOfString('Account Ledger Report');
       const titleX = M + (CW - titleWidth) / 2;
-      y += 17;
-      // Underline the title
+      y += 16;
       doc
-        .moveTo(titleX, y - 1)
-        .lineTo(titleX + titleWidth, y - 1)
+        .moveTo(titleX, y - 2)
+        .lineTo(titleX + titleWidth, y - 2)
         .strokeColor(NAVY)
         .lineWidth(0.75)
         .stroke();
-      doc
-        .moveTo(M, y + 3)
-        .lineTo(W - M, y + 3)
-        .strokeColor(NAVY)
-        .lineWidth(1.5)
-        .stroke();
-      y += 15;
+      y += 12;
 
-      // Metadata
-      doc.font('Helvetica').fontSize(9).fillColor(BLACK);
-      doc.text('Opening Balance Included: Yes', M, y);
-      y += 13;
+      const from = formatRangeSlash(dateRange.startDate);
+      const to = formatRangeSlash(dateRange.endDate);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(BLACK);
       doc.text(
-        `Account: ${accountInfo.accountNumber} \u2014 ${accountInfo.accountName}`,
+        `Account: ${accountInfo.accountNumber} ${accountInfo.accountName} Date From: ${from} To: ${to}`,
         M,
         y,
+        { width: CW },
       );
-      y += 13;
-      const formatDate = (iso?: string) => {
-        if (!iso) return 'All';
-        const d = new Date(iso);
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const yyyy = d.getFullYear();
-        return `${dd}-${mm}-${yyyy}`;
-      };
-      const from = formatDate(dateRange.startDate);
-      const to = formatDate(dateRange.endDate);
-      doc.text(`Date Range:   From: ${from}   To: ${to}`, M, y);
-      y += 20;
+      y += 14;
+      doc.font('Helvetica').fontSize(9);
+      doc.text('Yes   Opening Balance Included', M, y);
+      y += 16;
       return y;
+    };
+
+    const drawPageFooter = (pageNum: number, totalPages: number) => {
+      const fy = 820;
+      doc.font('Helvetica').fontSize(8).fillColor(BLACK);
+      doc.text(`Page ${pageNum} of ${totalPages}`, M, fy, {
+        width: CW / 2,
+        align: 'left',
+      });
+      doc.text(formatPrintTimestamp(), M, fy, {
+        width: CW,
+        align: 'right',
+      });
     };
 
     const drawTableHeader = (y: number): number => {
@@ -550,10 +576,9 @@ export class PdfService {
       }
       doc.rect(M, y, CW, rh).strokeColor(GRID).lineWidth(0.3).stroke();
 
-      const balLabel = `${fmt(Math.abs(runBal))} ${runBal >= 0 ? 'Dr' : 'Cr'}`;
-      const dateStr = tx.date
-        ? new Date(tx.date).toLocaleDateString('en-GB')
-        : '';
+      const balSide: 'Dr' | 'Cr' = runBal >= 0 ? 'Dr' : 'Cr';
+      const balLabel = fmtDrCr(Math.abs(runBal), balSide);
+      const dateStr = tx.date ? formatLedgerRowDate(tx.date) : '';
 
       doc.font('Helvetica').fontSize(7.5).fillColor(BLACK);
       
@@ -581,13 +606,13 @@ export class PdfService {
       // Right-aligned financial columns - vertically centered in row
       const centerY = y + (rh - 7) / 2;
       if (dr > 0)
-        doc.text(fmt(dr), drCol.x + 2, centerY, {
+        doc.text(fmtDrCr(dr, 'Dr'), drCol.x + 2, centerY, {
           width: drCol.w - 4,
           align: 'right',
           lineBreak: false
         });
       if (cr > 0)
-        doc.text(fmt(cr), crCol.x + 2, centerY, {
+        doc.text(fmtDrCr(cr, 'Cr'), crCol.x + 2, centerY, {
           width: crCol.w - 4,
           align: 'right',
           lineBreak: false
@@ -610,33 +635,35 @@ export class PdfService {
       y = drawDocHeader(y);
       y = drawTableHeader(y);
     }
-    const grandBal = `${fmt(Math.abs(runBal))} ${runBal >= 0 ? 'Dr' : 'Cr'}`;
+    const grandSide: 'Dr' | 'Cr' = runBal >= 0 ? 'Dr' : 'Cr';
+    const grandBal = fmtDrCr(Math.abs(runBal), grandSide);
     const totalRowHeight = 18;
     doc.rect(M, y, CW, totalRowHeight).fill(NAVY);
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#ffffff');
-    
-    // Label spans date + vch + narration columns
-    doc.text('Grand Total', M + 2, y + 4, { 
+
+    doc.text('Grand Total:', M + 2, y + 4, {
       width: narCol.x + narCol.w - M - 4,
       align: 'left',
-      lineBreak: false
+      lineBreak: false,
     });
-    
+
     doc.text(fmt(totDr), drCol.x + 2, y + 4, {
       width: drCol.w - 4,
       align: 'right',
-      lineBreak: false
+      lineBreak: false,
     });
     doc.text(fmt(totCr), crCol.x + 2, y + 4, {
       width: crCol.w - 4,
       align: 'right',
-      lineBreak: false
+      lineBreak: false,
     });
     doc.text(grandBal, balCol.x + 2, y + 4, {
       width: balCol.w - 4,
       align: 'right',
-      lineBreak: false
+      lineBreak: false,
     });
+
+    drawPageFooter(1, 1);
 
     doc.end();
     return doc;

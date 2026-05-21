@@ -5,6 +5,7 @@ import {
   Query,
   UseGuards,
   BadRequestException,
+  Req,
   Res,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
@@ -13,7 +14,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { ReportsService } from '../reports.service';
 import { PdfService } from '../../invoices/SaleInvoice/services/pdf.service';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
@@ -66,12 +67,14 @@ export class ReportsController {
   async getGeneralLedgerPdf(
     @Param('accountNumber') accountNumber: string,
     @Res() res: Response,
+    @Req() req: Request,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('includeOpeningBalance') includeOpeningBalance?: string,
     @Query('openingScope') openingScope?: string,
   ) {
     const includeOb = includeOpeningBalance === 'true';
+    const brand = ((req['brand'] as string) || 'chemtronics').toLowerCase().trim();
     const [transactions, accountInfo] = await Promise.all([
       this.reportsService.getGeneralLedger(
         accountNumber,
@@ -93,6 +96,7 @@ export class ReportsController {
       transactions as any[],
       accountInfo,
       { startDate, endDate },
+      brand,
     );
     doc.pipe(res as any);
   }
